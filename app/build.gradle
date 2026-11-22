@@ -1,0 +1,46 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.calcs.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.calcs.app'
+        minSdk 29
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+    }
+
+    // A fixed key kept in the project, so every new build installs over the previous one.
+    signingConfigs {
+        calcs {
+            storeFile file('calcs.keystore')
+            storePassword 'calcs123'
+            keyAlias 'calcs'
+            keyPassword 'calcs123'
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.calcs
+        }
+        release {
+            signingConfig signingConfigs.calcs
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}

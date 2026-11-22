@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="calcs_bg_n">#0E1318</color>
+    <color name="calcs_bar_n">#161D25</color>
+
+    <style name="AppTheme" parent="android:Theme.Material.NoActionBar">
+        <item name="android:colorPrimary">@color/calcs_bar_n</item>
+        <item name="android:colorPrimaryDark">@color/calcs_bar_n</item>
+        <item name="android:colorAccent">@color/calcs_accent</item>
+        <item name="android:windowBackground">@color/calcs_bg_n</item>
+        <item name="android:statusBarColor">@color/calcs_bar_n</item>
+        <item name="android:navigationBarColor">@color/calcs_bg_n</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>

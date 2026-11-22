@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- a calculation sheet with four coloured cells: water, drainage, rain, fire -->
+    <path android:fillColor="#F4F6FA" android:pathData="M36,30h36a4,4 0,0 1,4 4v40a4,4 0,0 1,-4 4h-36a4,4 0,0 1,-4 -4v-40a4,4 0,0 1,4 -4z" />
+    <path android:fillColor="#27364A" android:pathData="M38,36h32v9h-32z" />
+    <path android:fillColor="#1F6FD1" android:pathData="M38,49h14v10h-14z" />
+    <path android:fillColor="#8A5A1E" android:pathData="M56,49h14v10h-14z" />
+    <path android:fillColor="#0E8A83" android:pathData="M38,63h14v10h-14z" />
+    <path android:fillColor="#C9342B" android:pathData="M56,63h14v10h-14z" />
+</vector>
