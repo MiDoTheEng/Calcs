@@ -125,6 +125,7 @@ fun fieldTarget(f: Field, map: MutableMap<String, String>, app: AppState, onStru
 /** An input bound to a key of a map. */
 @Composable
 fun BoundInput(f: Field, map: MutableMap<String, String>, app: AppState, modifier: Modifier = Modifier, onStructural: () -> Unit = {}) {
+    @Suppress("UNUSED_VARIABLE") val ver = app.version   // redraw when the value changes elsewhere (keypad, − / +)
     when (f.kind) {
         Kind.SELECT -> SelectBox(map[f.k] ?: "", f.options, modifier) { v ->
             map[f.k] = v

@@ -99,7 +99,8 @@ fun NumBox(id: String, label: String, value: String, modifier: Modifier = Modifi
     val kp = LocalKeypad.current
     if (kp == null) { InputBox(value, true, modifier, onChange); return }
     val cc = LocalCalc.current
-    val text = value          // the stored value is the truth; the pad writes it through onChange
+    @Suppress("UNUSED_VARIABLE") val tick = kp.tick   // re-read after every key press
+    val text = get?.invoke() ?: value   // the stored value is the truth; the pad writes it through onChange
     val target = remember(id) { NumTarget(id, label, get ?: { value }, onChange, commit) }
     val active = kp.active?.id == id
     val bring = remember { BringIntoViewRequester() }

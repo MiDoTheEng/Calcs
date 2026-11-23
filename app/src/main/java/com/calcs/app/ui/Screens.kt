@@ -398,7 +398,7 @@ fun ToolContent(app: AppState, t: ToolDef) {
                         // header, each row and footer are separate lazy items → smooth scrolling on long lists
                         ensureRows(blk, s)
                         val lay = gridLayout(blk, w)
-                        val only = onlyUsed[blk.key] == true
+                        val only = onlyUsed[blk.key] ?: (blk.picker != null)
                         item(key = "g$bi-h", contentType = "grid-h") {
                             Part(PartPos.TOP) { GridHeader(blk, lay, only, picker = { if (blk.picker != null && blk.fixed != null) { FixturePicker(blk, s.list(blk.key), app, w); Spacer(Modifier.height(16.dp)) } }) { onlyUsed[blk.key] = !only } }
                         }

@@ -91,8 +91,9 @@ fun GridHeader(b: Grid, lay: GridLayout, onlyUsed: Boolean, picker: @Composable 
         if (b.help.isNotEmpty()) Text(b.help, style = T.small, color = cc.muted, modifier = Modifier.padding(top = 4.dp))
         Spacer(Modifier.height(12.dp))
         picker()
-        if (b.skipEmpty && b.fixed != null && !lay.table) {
-            FilterChip(selected = onlyUsed, onClick = onToggle, label = { Text("Show only rows with quantities") })
+        if (b.fixed != null && (b.picker != null || (b.skipEmpty && !lay.table))) {
+            if (b.picker != null) Text("Fixtures in use", style = T.section, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 6.dp))
+            FilterChip(selected = !onlyUsed, onClick = onToggle, label = { Text(if (b.picker != null) "Show the full code table" else "Show all rows") })
             Spacer(Modifier.height(8.dp))
         }
         if (lay.table) {

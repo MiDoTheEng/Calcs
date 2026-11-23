@@ -24,6 +24,15 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -88,7 +97,21 @@ private fun DrawScope.drawFixture(kind: String, c: Color, f: Color) {
 
 /* ============================== fixture picker ============================== */
 
-/** Icon tiles with − / + for the "per unit" quantity – a quick way to fill a fixture list. */
+private fun baseName(n: String): String = n.split(",", "(", " - ").first().trim()
+private fun rowText(r: List<Any>) = r.filterIsInstance<String>().joinToString(" ").lowercase()
+private fun isPublic(r: List<Any>) = rowText(r).let { it.contains("public") || it.contains("office") || it.contains("hotel") }
+private fun isPrivate(r: List<Any>) = rowText(r).let { it.contains("private") || !isPublic(r) }
+private fun variantLabel(r: List<Any>): String {
+    val name = r[0].toString(); val base = baseName(name)
+    val rest = name.removePrefix(base).trim(' ', ',', '-', '(', ')').replace(")", "")
+    return (listOf(rest) + r.drop(1).filterIsInstance<String>()).filter { it.isNotBlank() && it != "-" && !it.equals("Soil", true) && !it.equals("Waste", true) }
+        .joinToString(" · ").replaceFirstChar { it.uppercase() }
+}
+
+/**
+ * Fixture picker: one tile per fixture TYPE (WC, lavatory, shower…). Types with several code rows
+ * (private / public, flush tank / valve…) get a small variant selector. Filter: residential / public / all.
+ */
 @Composable
 fun FixturePicker(b: Grid, list: List<RowData>, app: AppState, avail: Dp) {
     val cc = LocalCalc.current
@@ -96,35 +119,65 @@ fun FixturePicker(b: Grid, list: List<RowData>, app: AppState, avail: Dp) {
     val key = b.picker ?: return
     val col = b.cols.firstOrNull { it.k == key } ?: return
     val fixed = b.fixed ?: return
+    @Suppress("UNUSED_VARIABLE") val ver = app.version
+    fun qty(i: Int) = list.getOrNull(i)?.let { r -> b.cols.sumOf { c -> parseNum(r[c.k]).let { if (it.isNaN()) 0.0 else it } } } ?: 0.0
+    val hasOcc = fixed.any { isPublic(it) } && fixed.any { !isPublic(it) }
+    var filter by rememberSaveable(b.key) { mutableStateOf("res") }
+    val shown = fixed.indices.filter { i -> !hasOcc || filter == "all" || qty(i) > 0 || (if (filter == "res") isPrivate(fixed[i]) else isPublic(fixed[i])) }
+    val groups = shown.groupBy { baseName(fixed[it][0].toString()) }
+    val sel = remember(b.key) { mutableStateMapOf<String, Int>() }
+
     val inner = avail - 32.dp - 32.dp
-    val cols = if (inner < 520.dp) 2 else maxOf(3, (inner / 200.dp).toInt())
+    val cols = if (inner < 520.dp) 2 else maxOf(3, (inner / 210.dp).toInt())
     val tileW = (inner - 8.dp * (cols - 1)) / cols - 1.dp
-    Text("Tap + / − to add fixtures (${col.label.lowercase()}). The table below shows the totals.", style = T.small, color = cc.muted)
+    if (hasOcc) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            listOf("res" to "Residential", "pub" to "Public", "all" to "All").forEach { (k, l) ->
+                FilterChip(selected = filter == k, onClick = { filter = k }, label = { Text(l) })
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+    }
+    Text("Tap + / − for ${col.label.lowercase()}. Tap the small line under a name to pick the type (private / public, flush tank / valve…).", style = T.small, color = cc.muted)
     Spacer(Modifier.height(8.dp))
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        fixed.forEachIndexed { i, rowFixed ->
-            val row = list.getOrNull(i) ?: return@forEachIndexed
+        groups.forEach { (name, idx) ->
+            val cur = sel[name]?.takeIf { it in idx } ?: idx.firstOrNull { qty(it) > 0 } ?: idx.first()
+            val row = list.getOrNull(cur) ?: return@forEach
             val q = parseNum(row[key]).let { if (it.isNaN()) 0.0 else it }
-            val on = q > 0
+            val groupOn = idx.any { qty(it) > 0 }
+            var menu by remember { mutableStateOf(false) }
             Column(
                 Modifier.width(tileW).clip(RoundedCornerShape(12.dp))
-                    .background(if (on) accent.copy(alpha = .10f) else cc.surface2)
-                    .border(if (on) 2.dp else 1.dp, if (on) accent else cc.line, RoundedCornerShape(12.dp))
+                    .background(if (groupOn) accent.copy(alpha = .10f) else cc.surface2)
+                    .border(if (groupOn) 2.dp else 1.dp, if (groupOn) accent else cc.line, RoundedCornerShape(12.dp))
                     .padding(8.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    FixtureIcon(b.icon?.invoke(i) ?: "sink", 34.dp, if (on) accent else cc.muted)
+                    FixtureIcon(b.icon?.invoke(cur) ?: "sink", 34.dp, if (groupOn) accent else cc.muted)
                     Spacer(Modifier.width(8.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(rowFixed[0].toString(), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = cc.ink, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 15.sp)
-                        val sub = rowFixed.drop(1).filter { it is String && it != "-" }.joinToString(" · ")
-                        if (sub.isNotEmpty()) Text(sub, fontSize = 11.sp, color = cc.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(name, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = cc.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        val vl = variantLabel(fixed[cur])
+                        if (idx.size > 1) Box {
+                            Text("$vl ▾", fontSize = 11.5.sp, color = accent, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { menu = true }.padding(vertical = 3.dp))
+                            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                                idx.forEach { j ->
+                                    val qj = qty(j)
+                                    DropdownMenuItem(text = { Text(variantLabel(fixed[j]) + if (qj > 0) "   (${toText(qj)})" else "", fontWeight = if (j == cur) FontWeight.Bold else FontWeight.Normal) },
+                                        onClick = { sel[name] = j; menu = false })
+                                }
+                            }
+                        } else if (vl.isNotEmpty()) Text(vl, fontSize = 11.sp, color = cc.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
+                val others = idx.filter { it != cur && qty(it) > 0 }
+                if (others.isNotEmpty()) Text("Also: " + others.joinToString(", ") { "${toText(qty(it))} × ${variantLabel(fixed[it])}" }, fontSize = 10.5.sp, color = cc.muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Stepper("−") { row[key] = toText(maxOf(0.0, q - 1)); app.touch() }
-                    NumBox(fieldId(row, key), "${rowFixed[0]} – ${col.label}", row[key] ?: "", Modifier.weight(1f).padding(horizontal = 6.dp), get = { row[key] ?: "" }) { v -> row[key] = v; app.touch() }
+                    NumBox(fieldId(row, key), "$name – ${variantLabel(fixed[cur])} – ${col.label}", row[key] ?: "", Modifier.weight(1f).padding(horizontal = 6.dp), get = { row[key] ?: "" }) { v -> row[key] = v; app.touch() }
                     Stepper("+") { row[key] = toText(q + 1); app.touch() }
                 }
             }
