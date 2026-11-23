@@ -84,12 +84,13 @@ fun gridLayout(b: Grid, avail: Dp): GridLayout {
 
 /** Grid title, help, filter and (table mode) the column header. One lazy item. */
 @Composable
-fun GridHeader(b: Grid, lay: GridLayout, onlyUsed: Boolean, onToggle: () -> Unit) {
+fun GridHeader(b: Grid, lay: GridLayout, onlyUsed: Boolean, picker: @Composable () -> Unit = {}, onToggle: () -> Unit) {
     val cc = LocalCalc.current
     Column(Modifier.fillMaxWidth()) {
         Text(b.title, style = T.section, color = MaterialTheme.colorScheme.primary)
         if (b.help.isNotEmpty()) Text(b.help, style = T.small, color = cc.muted, modifier = Modifier.padding(top = 4.dp))
         Spacer(Modifier.height(12.dp))
+        picker()
         if (b.skipEmpty && !lay.table) {
             FilterChip(selected = onlyUsed, onClick = onToggle, label = { Text("Show only rows with quantities") })
             Spacer(Modifier.height(8.dp))

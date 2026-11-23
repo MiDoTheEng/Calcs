@@ -400,12 +400,9 @@ fun ToolContent(app: AppState, t: ToolDef) {
                         val lay = gridLayout(blk, w)
                         val only = onlyUsed[blk.key] == true
                         item(key = "g$bi-h", contentType = "grid-h") {
-                            Part(PartPos.TOP) { GridHeader(blk, lay, only) { onlyUsed[blk.key] = !only } }
+                            Part(PartPos.TOP) { GridHeader(blk, lay, only, picker = { if (blk.picker != null && blk.fixed != null) { FixturePicker(blk, s.list(blk.key), app, w); Spacer(Modifier.height(16.dp)) } }) { onlyUsed[blk.key] = !only } }
                         }
                         val list = s.list(blk.key)
-                        if (blk.picker != null && blk.fixed != null) item(key = "g$bi-p", contentType = "grid-p") {
-                            Part(PartPos.MID) { Column(Modifier.padding(bottom = 14.dp)) { FixturePicker(blk, list, app, w) } }
-                        }
                         for (i in 0 until com.calcs.app.core.Reports.rowCount(blk, s)) {
                             if (only && blk.fixed != null && !rowUsedPublic(blk, list[i])) continue
                             item(key = "g$bi-r$i", contentType = if (lay.table) "row-t$bi" else "row-c$bi") {

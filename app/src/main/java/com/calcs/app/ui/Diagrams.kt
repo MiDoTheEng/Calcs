@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -271,27 +272,28 @@ fun InputDiagramView(id: String, fields: List<Field>, map: MutableMap<String, St
     @Suppress("UNUSED_VARIABLE") val v = app.version
     BoxWithConstraints(Modifier.fillMaxWidth().padding(bottom = 12.dp), contentAlignment = Alignment.Center) {
         val w = minOf(maxWidth, 600.dp)
-        val h = w * (250f / 600f)
+        val small = w < 440.dp
+        val h = w * (if (small) 300f else 250f) / 600f
         Box(Modifier.width(w).height(h).clip(RoundedCornerShape(12.dp)).background(cc.surface2)) {
             Canvas(Modifier.fillMaxSize()) {
-                val k = Sk(this, size.width / 600f, tm, cc, accent, -1)
-                d.draw(k)
+                val sc = size.width / 600f
+                translate(top = (size.height - 250f * sc) / 2f) { d.draw(Sk(this, sc, tm, cc, accent, -1)) }
             }
             Layout(content = {
                 tags.forEach { (t, f) ->
                     val active = kp?.active?.id == fieldId(map, f.k)
                     val value = map[f.k].orEmpty()
-                    Row(
-                        Modifier.clip(RoundedCornerShape(8.dp))
-                            .background(if (active) accent else cc.surface)
-                            .border(1.5.dp, accent, RoundedCornerShape(8.dp))
-                            .clickable { kp?.open(fieldTarget(f, map, app, onStructural)) }
-                            .padding(horizontal = 7.dp, vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    val valueText = (if (value.isBlank()) "—" else value) + if (f.unit.isNotEmpty()) " " + f.unit else ""
+                    val m = Modifier.clip(RoundedCornerShape(8.dp))
+                        .background(if (active) accent else cc.surface)
+                        .border(1.5.dp, accent, RoundedCornerShape(8.dp))
+                        .clickable { kp?.open(fieldTarget(f, map, app, onStructural)) }
+                    if (small) Column(m.padding(horizontal = 5.dp, vertical = 2.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(t.short, fontSize = 8.5.sp, lineHeight = 10.sp, color = if (active) Color.White else cc.muted, maxLines = 1)
+                        Text(valueText, fontSize = 10.5.sp, lineHeight = 12.sp, fontWeight = FontWeight.Bold, color = if (active) Color.White else cc.ink, maxLines = 1)
+                    } else Row(m.padding(horizontal = 7.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(t.short + "  ", fontSize = 10.5.sp, color = if (active) Color.White else cc.muted, maxLines = 1)
-                        Text((if (value.isBlank()) "—" else value) + if (f.unit.isNotEmpty()) " " + f.unit else "", fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                            color = if (active) Color.White else cc.ink, maxLines = 1)
+                        Text(valueText, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (active) Color.White else cc.ink, maxLines = 1)
                     }
                 }
             }) { ms, cons ->
@@ -301,7 +303,8 @@ fun InputDiagramView(id: String, fields: List<Field>, map: MutableMap<String, St
                     ps.forEachIndexed { i, p ->
                         val t = tags[i].first
                         val x = (t.x / 600f * W - p.width / 2f).toInt().coerceIn(0, maxOf(0, W - p.width))
-                        val y = (t.y / 250f * H - p.height / 2f).toInt().coerceIn(0, maxOf(0, H - p.height))
+                        val sc = W / 600f; val top = (H - 250f * sc) / 2f
+                        val y = (top + t.y * sc - p.height / 2f).toInt().coerceIn(0, maxOf(0, H - p.height))
                         p.place(x, y)
                     }
                 }
