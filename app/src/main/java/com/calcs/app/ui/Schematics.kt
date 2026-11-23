@@ -66,7 +66,6 @@ class Schematic(val title: String, val w: Float, val h: Float, val legend: List<
 private val CW = Color(0xFF2B7BD8); private val HW = Color(0xFFD8453A)
 private val SOIL = Color(0xFF8A5A1E); private val WASTE = Color(0xFF7A8B2E); private val VENT = Color(0xFF8A94A3)
 private val STORM = Color(0xFF0E9A90); private val FIRE = Color(0xFFD23C3C)
-private val CHWS = Color(0xFF1F6FD1); private val CHWR = Color(0xFF7FB2F0)
 private val SA = Color(0xFF3E9BE0); private val RA = Color(0xFF8B6BD6); private val FA = Color(0xFF2E9E5B); private val EA = Color(0xFF7D8794)
 
 /* ============================== drawing kit ============================== */
@@ -316,45 +315,64 @@ private val fireSchem = Schematic("Fire fighting – pumps, wet riser & sprinkle
     }
 }
 
-private val hvacSchem = Schematic("HVAC – chilled water, fresh air, supply / return / exhaust", 1000f, 600f,
-    listOf(LegendItem(CHWS, "CHW supply"), LegendItem(CHWR, "CHW return"), LegendItem(FA, "Fresh air"), LegendItem(SA, "Supply air"), LegendItem(RA, "Return air"), LegendItem(EA, "Exhaust air")),
+private val REF = Color(0xFFE07B1A); private val COND = Color(0xFF6D8FA8)
+
+private val hvacSchem = Schematic("HVAC – VRF & split units, fresh air, exhaust", 1000f, 600f,
+    listOf(LegendItem(REF, "Refrigerant (liquid + gas)"), LegendItem(FA, "Fresh air"), LegendItem(SA, "Supply air"), LegendItem(RA, "Return air"),
+        LegendItem(EA, "Exhaust air"), LegendItem(COND, "Condensate drain", true)),
     listOf(
-        Comp(1, "Air-cooled chiller", "Produces chilled water (≈ 6 / 12 °C). Capacity = sum of the coil loads (TR) with diversity.", 150f, 40f, 0),
-        Comp(2, "Chilled water pipes & pump", "Carry chilled water to the AHUs / FCUs; flow = kW / (4.19 × ΔT).", 250f, 148f, 0),
-        Comp(3, "Fresh air handling unit (FAHU)", "Treats outdoor air (often with heat recovery) and supplies the ventilation rate (ASHRAE 62.1).", 410f, 45f, 1),
-        Comp(4, "AHU / fan coil unit", "Cools the room air plus fresh air. Coil load = room sensible + latent + fresh-air load; airflow from the sensible load.", 330f, 150f, 0),
-        Comp(5, "Supply duct main", "Sized by equal friction; the fan's ESP is the critical path loss plus terminals.", 520f, 152f, 2),
-        Comp(6, "Branch duct & volume damper", "Branches to each diffuser with a VCD for balancing.", 592f, 205f, 2),
-        Comp(7, "Supply diffuser", "Delivers the room's share of supply air at low noise.", 440f, 272f, 2),
-        Comp(8, "Return grille & return duct", "Brings room air back to the AHU (ducted or ceiling plenum).", 760f, 274f, 2),
-        Comp(9, "Toilet exhaust & exhaust fan", "Toilets / kitchens kept negative; rate per WC or per m² (ASHRAE 62.1 Table 6-4).", 870f, 60f, 1),
-        Comp(10, "Conditioned room", "Room-by-room cooling load: walls, glass, roof, people, lights, equipment.", 360f, 420f, 0)
+        Comp(1, "VRF outdoor unit", "One outdoor unit serves many indoor units. Size it from the sum of the indoor loads with diversity; keep the combination ratio within the maker's limits (≈ 50–130 %) and check pipe length / height limits.", 150f, 40f, 0),
+        Comp(2, "Refrigerant piping & branch joints", "Liquid + gas pipes with Y-joints (refnets) to each indoor unit. Sizes come from the manufacturer's selection software, based on the downstream indoor capacity.", 330f, 128f),
+        Comp(3, "Ducted indoor unit (concealed)", "Serves a large room through ducts. Select it from the room's total load (TR / kW) and its supply airflow; its ESP comes from the duct calculation.", 238f, 228f, 0),
+        Comp(4, "Supply duct & diffusers", "Sized by equal friction; the duct losses + diffuser give the ESP the ducted unit must deliver.", 335f, 268f, 2),
+        Comp(5, "Return grille / ceiling plenum", "Room air back to the indoor unit, ducted or through the ceiling void.", 120f, 275f, 2),
+        Comp(6, "Cassette indoor unit", "Ceiling unit for rooms without ducts (meetings, shops). Pick the size from the room load.", 570f, 278f, 0),
+        Comp(7, "Wall-mounted split + its outdoor unit", "One indoor unit with its own condensing unit on the roof – for single rooms, offices, apartments.", 785f, 352f, 0),
+        Comp(8, "Fresh air unit (FAHU / DX)", "Treats the outdoor air needed by ASHRAE 62.1 so the indoor units only handle the room load.", 390f, 42f, 1),
+        Comp(9, "Fresh air duct & grilles", "Delivers the treated fresh air to each space at its ventilation rate.", 650f, 205f, 1),
+        Comp(10, "Toilet exhaust & exhaust fan", "Keeps toilets negative; rate per WC or per m² (ASHRAE 62.1 Table 6-4).", 912f, 52f, 1),
+        Comp(11, "Condensate drain", "From every indoor unit to a trapped drain point, sloped ≥ 1 %. Cassettes / ducted units often need a small lift pump.", 712f, 440f),
+        Comp(12, "Rooms, loads & controller", "Each room's cooling load (walls, glass, people, lights, equipment) sets the unit size; a wired remote controller / thermostat per room.", 300f, 450f, 0)
     )) {
-    // roof & floor
-    line(60f, 130f, 960f, 130f, cc.muted, 6f); line(60f, 250f, 960f, 250f, cc.line, 3f); line(60f, 560f, 960f, 560f, cc.muted, 6f)
-    line(60f, 130f, 60f, 560f, cc.line, 3f); line(960f, 130f, 960f, 560f, cc.line, 3f); line(800f, 250f, 800f, 560f, cc.line, 3f)
-    text(70f, 238f, "Ceiling void", 10f, cc.muted, center = false); text(420f, 520f, "Office", 13f, cc.muted, true); text(870f, 520f, "Toilet", 13f, cc.muted, true)
-    // chiller on the roof
-    rect(90f, 60f, 130f, 62f, cc.surface2, cc.muted, 2.5f); fan(125f, 82f, 13f, cc.muted); fan(185f, 82f, 13f, cc.muted); text(155f, 112f, "Chiller", 10f, cc.ink, true)
-    // CHW down to AHU
-    poly(200f, 122f, 200f, 175f, 290f, 175f, c = CHWS, w = 4f); poly(215f, 122f, 215f, 190f, 290f, 190f, c = CHWR, w = 4f)
-    pump(255f, 175f, CHWS, 10f)
-    // AHU
-    rect(290f, 148f, 85f, 58f, cc.surface2, cc.muted, 2.5f); fan(355f, 177f, 13f, SA); text(318f, 177f, "AHU", 10f, cc.ink, true)
-    // FAHU on roof → fresh air down to AHU
-    rect(360f, 62f, 110f, 56f, cc.surface2, FA, 2.5f); text(415f, 90f, "FAHU", 11f, cc.ink, true)
-    poly(500f, 90f, 470f, 90f, c = FA, w = 5f); arrow(484f, 90f, 'l', FA); text(530f, 90f, "Outdoor air", 9f, FA, center = false)
-    poly(400f, 118f, 400f, 140f, 340f, 140f, 340f, 148f, c = FA, w = 5f)
-    // supply main + branches with volume dampers + diffusers
-    poly(375f, 165f, 700f, 165f, c = SA, w = 9f); arrow(520f, 165f, 'r', SA, 8f)
-    listOf(440f, 560f, 680f).forEach { dx -> line(dx, 165f, dx, 248f, SA, 5f); valve(dx, 210f, SA, true, 7f); diffuser(dx, 250f, SA) }
-    // return grille + return duct back to the AHU
-    rect(742f, 250f, 36f, 7f, RA, null, r = 1f); poly(760f, 250f, 760f, 232f, 375f, 232f, 375f, 200f, c = RA, w = 6f); arrow(610f, 232f, 'l', RA, 8f)
-    // toilet exhaust → fan on roof
-    rect(852f, 250f, 36f, 7f, EA, null, r = 1f); poly(870f, 250f, 870f, 105f, c = EA, w = 6f); fan(870f, 95f, 16f, EA); arrow(870f, 60f, 'u', EA)
-    // thermostat + people
-    rect(735f, 360f, 16f, 22f, cc.surface, cc.muted, 2f); text(743f, 392f, "T", 9f, cc.muted, true)
-    listOf(300f, 380f, 460f).forEach { px -> circle(px, 450f, 9f, null, cc.muted, 2.5f); line(px, 459f, px, 495f, cc.muted, 3f); line(px - 12, 472f, px + 12, 472f, cc.muted, 3f) }
+    // roof, ceiling void, rooms
+    line(40f, 130f, 970f, 130f, cc.muted, 6f); line(40f, 250f, 970f, 250f, cc.line, 3f); line(40f, 560f, 970f, 560f, cc.muted, 6f)
+    line(40f, 130f, 40f, 560f, cc.line, 3f); line(970f, 130f, 970f, 560f, cc.line, 3f)
+    listOf(440f, 700f, 860f).forEach { line(it, 250f, it, 560f, cc.line, 3f) }
+    text(50f, 240f, "Ceiling void", 10f, cc.muted, center = false)
+    text(240f, 525f, "Office", 13f, cc.muted, true); text(570f, 525f, "Meeting", 13f, cc.muted, true)
+    text(780f, 525f, "Manager", 13f, cc.muted, true); text(915f, 525f, "Toilet", 12f, cc.muted, true)
+    // VRF outdoor unit on the roof
+    rect(80f, 62f, 140f, 62f, cc.surface2, cc.muted, 2.5f); fan(118f, 85f, 14f, cc.muted); fan(182f, 85f, 14f, cc.muted); text(150f, 115f, "VRF outdoor", 10f, cc.ink, true)
+    // refrigerant main with Y-joints
+    poly(150f, 124f, 150f, 145f, 570f, 145f, c = REF, w = 4f); poly(160f, 124f, 160f, 152f, 560f, 152f, c = REF, w = 2.5f)
+    poly(240f, 145f, 240f, 165f, c = REF, w = 4f); circle(240f, 145f, 4f, REF)
+    poly(570f, 145f, 570f, 230f, c = REF, w = 4f); circle(570f, 145f, 4f, REF)
+    // ducted indoor unit + supply duct + diffusers + return
+    rect(200f, 165f, 80f, 45f, cc.surface2, cc.muted, 2.5f); fan(258f, 187f, 11f, SA); text(222f, 187f, "IU", 10f, cc.ink, true)
+    poly(280f, 180f, 410f, 180f, c = SA, w = 8f); arrow(345f, 180f, 'r', SA, 7f)
+    listOf(310f, 390f).forEach { dx -> line(dx, 180f, dx, 246f, SA, 5f); diffuser(dx, 250f, SA) }
+    rect(102f, 250f, 36f, 7f, RA, null, r = 1f); poly(120f, 250f, 120f, 190f, 200f, 190f, c = RA, w = 6f); arrow(165f, 190f, 'r', RA, 7f)
+    // cassette in the meeting room
+    rect(540f, 230f, 60f, 22f, cc.surface2, cc.muted, 2.5f); text(570f, 241f, "Cassette", 8.5f, cc.ink, true)
+    arrow(530f, 262f, 'l', SA, 6f); arrow(610f, 262f, 'r', SA, 6f)
+    // wall split + its own outdoor unit
+    rect(745f, 290f, 90f, 30f, cc.surface2, cc.muted, 2.5f); text(790f, 305f, "Wall split", 9f, cc.ink, true)
+    rect(760f, 82f, 70f, 42f, cc.surface2, cc.muted, 2.5f); fan(780f, 103f, 11f, cc.muted); text(812f, 103f, "ODU", 8.5f, cc.ink, true)
+    poly(825f, 290f, 825f, 124f, c = REF, w = 4f)
+    // fresh air unit on the roof → fresh air duct
+    rect(330f, 62f, 120f, 56f, cc.surface2, FA, 2.5f); text(390f, 90f, "FAHU", 11f, cc.ink, true)
+    poly(490f, 90f, 450f, 90f, c = FA, w = 5f); arrow(468f, 90f, 'l', FA); text(500f, 90f, "Outdoor air", 9f, FA, center = false)
+    poly(410f, 118f, 410f, 205f, 650f, 205f, 650f, 248f, c = FA, w = 5f); poly(410f, 205f, 290f, 205f, 290f, 210f, c = FA, w = 4f)
+    rect(632f, 250f, 36f, 6f, FA, null, r = 1f)
+    // toilet exhaust
+    rect(895f, 250f, 34f, 7f, EA, null, r = 1f); poly(912f, 250f, 912f, 110f, c = EA, w = 6f); fan(912f, 98f, 15f, EA); arrow(912f, 66f, 'u', EA)
+    // condensate drains
+    poly(600f, 240f, 690f, 240f, 690f, 556f, c = COND, w = 2.5f, dashed = true)
+    poly(835f, 318f, 850f, 318f, 850f, 556f, c = COND, w = 2.5f, dashed = true)
+    poly(200f, 205f, 190f, 205f, c = COND, w = 2.5f, dashed = true)
+    // controller + people
+    rect(420f, 350f, 14f, 22f, cc.surface, cc.muted, 2f)
+    listOf(180f, 250f, 320f).forEach { px -> circle(px, 420f, 9f, null, cc.muted, 2.5f); line(px, 429f, px, 465f, cc.muted, 3f); line(px - 12, 442f, px + 12, 442f, cc.muted, 3f) }
 }
 
 /* ============================== screen ============================== */

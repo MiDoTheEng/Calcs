@@ -189,7 +189,7 @@ object HvacTools {
                     RRow("TOTAL COOLING LOAD", r["kw"], "kW", 2, true), RRow("TOTAL COOLING LOAD", r["tr"], "TR", 2, true),
                     RRow("Supply airflow", r["sa"], "L/s", 0), RRow("Supply airflow", r["cfm"], "CFM", 0, true),
                     RRow("Load density", r["wm2"], "W/m²", 0), RRow("Area per TR", r["m2tr"], "m²/TR", 1)) }),
-            Note("Peak-load method: walls / roof U·A·ETD, glass U·A·ΔT + A·SHGF·SC·CLF, people, lights & equipment, fresh air 1.23·Q·ΔT + 3010·Q·ΔW, × safety. Supply air = RSH / (1.23 × ΔT supply). For a quick check, UAE offices typically land around 15–25 m²/TR. Use an hourly method (HAP / Trace / IES) for the final design.")
+            Note("Peak-load method: walls / roof U·A·ETD, glass U·A·ΔT + A·SHGF·SC·CLF, people, lights & equipment, fresh air 1.23·Q·ΔT + 3010·Q·ΔW, × safety. Supply air = RSH / (1.23 × ΔT supply). For a quick check, UAE offices typically land around 15–25 m²/TR. For VRF / split selection, size each indoor unit from its room total and the outdoor unit from the sum with diversity. Use an hourly method (HAP / Trace / IES) for the final design.")
         )
     )
 
