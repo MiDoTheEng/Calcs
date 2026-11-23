@@ -422,7 +422,7 @@ fun ToolContent(app: AppState, t: ToolDef) {
                                     is Note -> Text(blk.text, style = T.small, color = cc.muted, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
                                     SketchBlock -> BranchSketch(s, r, w)
                                     is Grid -> {}
-                                    is com.calcs.app.core.Rooms -> RoomsView(blk, s, app, w)
+                                    is com.calcs.app.core.Rooms -> RoomsView(blk, s, r, app, w)
                                 }
                             }
                         }

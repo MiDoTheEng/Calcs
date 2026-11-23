@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -57,12 +58,16 @@ private fun base(n: String) = n.split(",", "(", " - ").first().trim()
 
 /** Fixtures entered room by room: rooms of one apartment (× apartments) + rooms outside the apartments. */
 @Composable
-fun RoomsView(b: Rooms, s: ToolState, app: AppState, avail: Dp) {
+fun RoomsView(b: Rooms, s: ToolState, r: com.calcs.app.core.Res, app: AppState, avail: Dp) {
     val cc = LocalCalc.current
     @Suppress("UNUSED_VARIABLE") val ver = app.version
     val rooms = s.list(b.key)
-    val units = s.n0("units").let { if (it > 0) it else 1.0 }
+    val units = s.n0("units")
     Panel(b.title, b.help) {
+        if (b.perUnit && units <= 0) {
+            Text("⚠ Number of apartments is 0 or empty (section above) – so nothing is counted. Put 1 or more.", color = Color(0xFFC62828), fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Spacer(Modifier.height(10.dp))
+        }
         val inner = avail - 64.dp
         val cols = if (inner < 600.dp) 1 else if (inner < 960.dp) 2 else 3
         val cardW = (inner - 12.dp * (cols - 1)) / cols - 1.dp
@@ -85,6 +90,7 @@ fun RoomsView(b: Rooms, s: ToolState, app: AppState, avail: Dp) {
                 }
             }
         }
+        b.total?.let { f -> Spacer(Modifier.height(14.dp)); ResultList(try { f(r) } catch (e: Exception) { emptyList() }) }
     }
 }
 

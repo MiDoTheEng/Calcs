@@ -141,7 +141,8 @@ class Rooms(
     val icons: List<String>,
     val templates: List<RoomTemplate>,
     val perUnit: Boolean,                    // true: rooms inside each apartment × number of apartments + rooms outside
-    val help: String = ""
+    val help: String = "",
+    val total: ((Res) -> List<RRow>)? = null // live result shown under the rooms
 ) : Block() {
     companion object {
         fun fx(r: RowData): List<Pair<Int, Double>> = r.s("fx").split(',').mapNotNull { p ->

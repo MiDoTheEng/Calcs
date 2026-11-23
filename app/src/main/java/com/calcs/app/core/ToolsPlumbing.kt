@@ -61,7 +61,8 @@ object PlumbingTools {
                 Field("days", "Storage duration", "days")
             ), results = { _, r -> listOf(RRow("Total persons", r["persons"], "no.", 0), RRow("Daily demand", r["daily"], "m³/day", 2), RRow("Required storage volume", r["tank"], "m³", 2, true)) }, diagram = "ws-tank"),
             Rooms("2 · Fixtures, room by room", "rooms", "fix", Eng.WSFU.map { listOf(it.fixture, "${it.occ} · ${it.control}") }, Eng.WSFU.map { fixtureIcon(it.fixture) },
-                WS_ROOMS, perUnit = true, help = "Add the rooms of ONE apartment (e.g. 2 bathrooms + 1 kitchen) – they are multiplied by the number of apartments. Rooms outside the apartments (lobby toilets, gym…) are counted once."),
+                WS_ROOMS, perUnit = true, help = "Add the rooms of ONE apartment (e.g. 2 bathrooms + 1 kitchen) – they are multiplied by the number of apartments. Rooms outside the apartments (lobby toilets, gym…) are counted once.",
+                total = { r -> listOf(RRow("Total WSFU (building)", r["totWsfu"], "WSFU", 1, true), RRow("Peak flow", r["ls"], "L/s", 2)) }),
             Grid("Fixture totals & WSFU (IPC E103.3)", "fix", readOnly = true,
                 help = "Filled from the rooms above. Bathroom group = WC + lavatory + bath/shower: use it OR the single fixtures, never both.",
                 fixed = Eng.WSFU.map { listOf(it.fixture, it.occ, it.control, it.total) },
@@ -141,7 +142,8 @@ object PlumbingTools {
         tiles = { _, r -> listOf(RRow("Required storage", r["storage"], "L", 0), RRow("Recovery (PMD)", r["pmd"], "L/h", 0), RRow("Heater power", r["pTank"], "kW", 2)) },
         blocks = listOf(
             Rooms("1 · Rooms served by this heater", "rooms", "qty", Eng.HOT_FIXTURES.map { listOf(it.first, "") }, Eng.HOT_FIXTURES.map { fixtureIcon(it.first) },
-                HOT_ROOMS, perUnit = false, help = "One heater → only the rooms it serves (e.g. one apartment: 2 bathrooms + 1 kitchen)."),
+                HOT_ROOMS, perUnit = false, help = "One heater → only the rooms it serves (e.g. one apartment: 2 bathrooms + 1 kitchen).",
+                total = { r -> listOf(RRow("Possible maximum demand", r["possible"], "L/h", 0, true)) }),
             Grid("Fixture totals (ASHRAE / ASPE, apartment house, 60 °C)", "qty", readOnly = true,
                 help = "Filled from the rooms above.",
                 fixed = Eng.HOT_FIXTURES.map { listOf(it.first, it.second) },
@@ -186,7 +188,8 @@ object PlumbingTools {
         blocks = listOf(
             Section("Building", listOf(Field("units", "Number of identical units (apartments)", "no.")), diagram = "dr-building"),
             Rooms("Fixtures, room by room", "rooms", "fix", Eng.DFU.map { listOf(it.fixture, it.occ) }, Eng.DFU.map { fixtureIcon(it.fixture) },
-                DR_ROOMS, perUnit = true, help = "Add the rooms of ONE apartment – they are multiplied by the number of apartments. Rooms outside the apartments are counted once."),
+                DR_ROOMS, perUnit = true, help = "Add the rooms of ONE apartment – they are multiplied by the number of apartments. Rooms outside the apartments are counted once.",
+                total = { r -> listOf(RRow("Total DFU (building)", r["total"], "DFU", 1, true), RRow("Soil / waste", "${fmt(r["soil"], 0)} / ${fmt(r["waste"], 0)}", "DFU")) }),
             Grid("Fixture totals & DFU (IPC 709.1)", "fix", skipEmpty = true, readOnly = true,
                 help = "Filled from the rooms above. Two-pipe system: WC & urinals → soil, the rest → waste. Bathroom groups only for a combined (one-pipe) system.",
                 fixed = Eng.DFU.map { listOf(it.fixture, it.occ, it.dfu, it.system) },
