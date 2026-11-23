@@ -117,7 +117,7 @@ fun FixturePicker(b: Grid, list: List<RowData>, app: AppState, avail: Dp) {
                     Spacer(Modifier.width(8.dp))
                     Column(Modifier.weight(1f)) {
                         Text(rowFixed[0].toString(), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = cc.ink, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 15.sp)
-                        val sub = rowFixed.drop(1).filter { it is String }.joinToString(" · ")
+                        val sub = rowFixed.drop(1).filter { it is String && it != "-" }.joinToString(" · ")
                         if (sub.isNotEmpty()) Text(sub, fontSize = 11.sp, color = cc.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
