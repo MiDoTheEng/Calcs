@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
@@ -117,7 +118,11 @@ fun ExportActions(app: AppState, branches: List<Branch>, current: ToolDef? = nul
         busy = true
         scope.launch {
             try {
-                saved = withContext(Dispatchers.Default) { jobs.map { bs -> val (name, bytes) = Exporter.build(ctx, app, bs, pdf); Exporter.save(ctx, name, bytes, app.project.name) } }
+                saved = withContext(Dispatchers.Default) {
+                    val files = jobs.map { bs -> val (name, bytes) = Exporter.build(ctx, app, bs, pdf); Exporter.save(ctx, name, bytes, app.project.name) }
+                    try { Exporter.saveBackup(ctx, app) } catch (_: Exception) { }
+                    files
+                }
             } catch (e: Exception) { error = e.message ?: e.toString() }
             busy = false
         }
@@ -211,7 +216,24 @@ fun Confirm(title: String, text: String, ok: String, onOk: () -> Unit, onDismiss
 @Composable
 fun HomeScreen(app: AppState) {
     val cc = LocalCalc.current
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
     var ask by remember { mutableStateOf<String?>(null) }
+    var msg by remember { mutableStateOf<String?>(null) }
+    var backupSaved by remember { mutableStateOf<Saved?>(null) }
+    val picker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            val text = try { ctx.contentResolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) } } catch (_: Exception) { null }
+            val name = text?.let { app.importBackup(it) }
+            msg = if (name != null) "Opened “$name”. The project you had open is kept in Old projects." else "That file is not a Calcs backup (.calcs)."
+        }
+    }
+    fun backup() {
+        scope.launch {
+            try { backupSaved = withContext(Dispatchers.IO) { app.saveNow(); Exporter.saveBackup(ctx, app) } }
+            catch (e: Exception) { msg = "Could not save the backup: ${e.message}" }
+        }
+    }
     Scaffold(
         containerColor = cc.bg,
         topBar = {
@@ -238,19 +260,14 @@ fun HomeScreen(app: AppState) {
             item { BranchCard("U", "Unit converter", "Flow, pressure, length, volume, area, power, velocity, sprinkler density & K-factor", emptyList(), Color(0xFF5B5BD6)) { app.screen = Screen.Units } }
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Panel("Project details (printed on every report)") {
-                    key(app.generation) {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            ProjField("Project name", app.project.name) { app.project.name = it; app.touch() }
-                            ProjField("Location", app.project.location) { app.project.location = it; app.touch() }
-                            ProjField("Prepared by", app.project.engineer) { app.project.engineer = it; app.touch() }
-                            ProjField("Client / reference", app.project.client) { app.project.client = it; app.touch() }
-                            ProjField("Date (blank = today)", app.project.date) { app.project.date = it; app.touch() }
-                        }
-                    }
+                    key(app.generation) { ProjectDetails(app) }
                     Spacer(Modifier.height(14.dp))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { ask = "new" }) { Icon(Icons.Filled.Clear, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("New blank project") }
-                        OutlinedButton(onClick = { ask = "examples" }) { Icon(Icons.Filled.Refresh, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Load all worked examples") }
+                        Button(onClick = { ask = "new" }) { Icon(Icons.Filled.Add, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("New project") }
+                        OutlinedButton(onClick = { ask = "old" }) { Text("Old projects") }
+                        OutlinedButton(onClick = { backup() }) { Text("Back up / share project") }
+                        OutlinedButton(onClick = { picker.launch(arrayOf("*/*")) }) { Text("Open backup file") }
+                        OutlinedButton(onClick = { ask = "examples" }) { Icon(Icons.Filled.Refresh, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Load worked examples") }
                     }
                 }
             }
@@ -259,8 +276,16 @@ fun HomeScreen(app: AppState) {
             }
         }
     }
+    msg?.let { m -> AlertDialog(onDismissRequest = { msg = null }, text = { Text(m) }, confirmButton = { TextButton(onClick = { msg = null }) { Text("OK") } }) }
+    backupSaved?.let { b ->
+        AlertDialog(onDismissRequest = { backupSaved = null }, title = { Text("Backup saved") },
+            text = { Text("${b.name}\nin ${b.folder}\n\nOpen this file on any device with Calcs installed (Open backup file) to get the whole project back. Share it to Drive or WhatsApp to keep a copy.") },
+            confirmButton = { TextButton(onClick = { backupSaved = null; Exporter.share(ctx, b) }) { Text("Share") } },
+            dismissButton = { TextButton(onClick = { backupSaved = null }) { Text("Done") } })
+    }
     when (ask) {
-        "new" -> Confirm("Start a new blank project?", "Clears the project details and empties every calculation.", "Clear everything", { app.newProject() }) { ask = null }
+        "new" -> Confirm("Start a new project?", "“${app.project.name.ifBlank { "Untitled project" }}” is kept in Old projects – you can open it again any time.", "Start new project", { app.newProject() }) { ask = null }
+        "old" -> OldProjects(app) { ask = null }
         "examples" -> Confirm("Load the worked examples?", "Replaces the inputs of every calculation with the example values.", "Load examples", { app.loadExamples() }) { ask = null }
     }
 }
@@ -506,4 +531,79 @@ fun UnitsScreen(app: AppState) {
 private fun appVersion(): String {
     val ctx = LocalContext.current
     return remember { try { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "" } catch (_: Exception) { "" } }
+}
+
+@Composable
+private fun OldProjects(app: AppState, onClose: () -> Unit) {
+    val cc = LocalCalc.current
+    val v = app.archiveVersion
+    val list = remember(v) { app.archived() }
+    var del by remember { mutableStateOf<AppState.Archived?>(null) }
+    val fmtDate = remember { java.text.SimpleDateFormat("d MMM yyyy, HH:mm", java.util.Locale.US) }
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text("Old projects") },
+        text = {
+            if (list.isEmpty()) Text("No old projects yet. When you start a new project, the one you had open is kept here.")
+            else androidx.compose.foundation.lazy.LazyColumn(Modifier.heightIn(max = 420.dp)) {
+                items(list.size) { i ->
+                    val a = list[i]
+                    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(a.name, fontWeight = FontWeight.SemiBold, color = cc.ink)
+                            Text("Kept " + fmtDate.format(java.util.Date(a.savedAt)), style = T.small, color = cc.muted)
+                        }
+                        TextButton(onClick = { app.openArchived(a.id); onClose() }) { Text("Open") }
+                        TextButton(onClick = { del = a }) { Text("Delete", color = cc.bad) }
+                    }
+                    if (i < list.size - 1) androidx.compose.material3.HorizontalDivider(color = cc.line)
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onClose) { Text("Close") } }
+    )
+    del?.let { a -> Confirm("Delete “${a.name}”?", "This old project will be removed for good. Exported PDF / Excel / backup files are not touched.", "Delete", { app.deleteArchived(a.id) }) { del = null } }
+}
+
+/** Project details: typed once and saved; shown as text afterwards, with an Edit button. */
+@Composable
+private fun ProjectDetails(app: AppState) {
+    val cc = LocalCalc.current
+    var editing by remember { mutableStateOf(app.project.name.isBlank()) }
+    val p = app.project
+    if (editing) {
+        var name by remember { mutableStateOf(p.name) }
+        var loc by remember { mutableStateOf(p.location) }
+        var eng by remember { mutableStateOf(p.engineer) }
+        var cli by remember { mutableStateOf(p.client) }
+        var date by remember { mutableStateOf(p.date) }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ProjField("Project name", name) { name = it }
+            ProjField("Location", loc) { loc = it }
+            ProjField("Prepared by", eng) { eng = it }
+            ProjField("Client / reference", cli) { cli = it }
+            ProjField("Date (blank = today)", date) { date = it }
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Button(onClick = {
+                p.name = name.trim(); p.location = loc.trim(); p.engineer = eng.trim(); p.client = cli.trim(); p.date = date.trim()
+                app.saveNow(); editing = false; app.reload()
+            }, enabled = name.isNotBlank()) { Text("Save details") }
+            if (p.name.isNotBlank()) TextButton(onClick = { editing = false }) { Text("Cancel") }
+        }
+        if (name.isBlank()) SmallLabel("Type a project name to save.", Modifier.padding(top = 4.dp))
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("Project" to p.name, "Location" to p.location, "Prepared by" to p.engineer, "Client / reference" to p.client, "Date" to p.date.ifBlank { "today's date on each export" })
+                .filter { it.second.isNotBlank() }
+                .forEach { (k, v) ->
+                    Row {
+                        Text(k, style = T.small, color = cc.muted, modifier = Modifier.width(140.dp))
+                        Text(v, fontWeight = if (k == "Project") FontWeight.Bold else FontWeight.Normal, color = cc.ink)
+                    }
+                }
+            OutlinedButton(onClick = { editing = true }) { Text("Edit details") }
+        }
+    }
 }

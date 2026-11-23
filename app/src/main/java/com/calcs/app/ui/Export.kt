@@ -149,6 +149,38 @@ object Exporter {
         return Saved(uri, mime, name, "Downloads/$folder")
     }
 
+    /** Writes <project>.calcs into the project's folder (replaces the older backup of the same project). */
+    fun saveBackup(ctx: Context, app: AppState): Saved {
+        val folderName = projectFolder(app.project.name)
+        val rel = Environment.DIRECTORY_DOWNLOADS + "/Calcs/" + folderName + "/"
+        val name = "$folderName.calcs"
+        val mime = "application/octet-stream"
+        val bytes = app.backupText().toByteArray(Charsets.UTF_8)
+        val cr = ctx.contentResolver
+        var uri: Uri? = null
+        try {
+            cr.query(MediaStore.Downloads.EXTERNAL_CONTENT_URI, arrayOf(MediaStore.MediaColumns._ID),
+                "${MediaStore.MediaColumns.RELATIVE_PATH}=? AND ${MediaStore.MediaColumns.DISPLAY_NAME}=?", arrayOf(rel, name), null)?.use { c ->
+                if (c.moveToFirst()) uri = android.content.ContentUris.withAppendedId(MediaStore.Downloads.EXTERNAL_CONTENT_URI, c.getLong(0))
+            }
+        } catch (_: Exception) { uri = null }
+        val existing = uri
+        if (existing != null) {
+            cr.openOutputStream(existing, "wt")?.use { it.write(bytes) } ?: error("Could not write the backup")
+            return Saved(existing, mime, name, "Downloads/Calcs/$folderName")
+        }
+        val v = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+            put(MediaStore.MediaColumns.MIME_TYPE, mime)
+            put(MediaStore.MediaColumns.RELATIVE_PATH, rel)
+            put(MediaStore.MediaColumns.IS_PENDING, 1)
+        }
+        val created = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v) ?: error("Could not create the backup")
+        cr.openOutputStream(created)?.use { it.write(bytes) } ?: error("Could not write the backup")
+        cr.update(created, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
+        return Saved(created, mime, name, "Downloads/Calcs/$folderName")
+    }
+
     fun open(ctx: Context, s: Saved) {
         val i = Intent(Intent.ACTION_VIEW).setDataAndType(s.uri, s.mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
         try { ctx.startActivity(Intent.createChooser(i, "Open with").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
