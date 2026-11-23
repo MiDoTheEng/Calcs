@@ -84,15 +84,15 @@ fun GridView(b: Grid, s: ToolState, r: Res, app: AppState, avail: Dp) {
     var onlyUsed by remember { mutableStateOf(false) }
 
     Panel(b.title, b.help) {
-        if (b.fixed != null && b.cols.isNotEmpty() && !tableMode) {
+        if (b.skipEmpty && !tableMode) {
             FilterChip(selected = onlyUsed, onClick = { onlyUsed = !onlyUsed }, label = { Text("Show only rows with quantities") })
             Spacer(Modifier.height(8.dp))
         }
         if (tableMode) {
-            val scale = inner / total
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).border(1.dp, cc.line, RoundedCornerShape(12.dp))) {
+            val scale = minOf(inner / total, 1.45f)
+            Column(Modifier.width(total * scale).clip(RoundedCornerShape(12.dp)).border(1.dp, cc.line, RoundedCornerShape(12.dp))) {
                 // header
-                Row(Modifier.fillMaxWidth().background(cc.head).heightIn(min = 44.dp), verticalAlignment = Alignment.Bottom) {
+                Row(Modifier.width(total * scale).background(cc.head).heightIn(min = 44.dp), verticalAlignment = Alignment.Bottom) {
                     val heads = Reports.gridHead(b) + if (b.add != null) listOf("") else emptyList()
                     heads.forEachIndexed { j, h ->
                         Text(h, color = Color.White, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, lineHeight = 15.sp,
@@ -103,7 +103,7 @@ fun GridView(b: Grid, s: ToolState, r: Res, app: AppState, avail: Dp) {
                 for (i in 0 until n) {
                     val row = list[i]
                     HorizontalDivider(color = cc.line)
-                    Row(Modifier.fillMaxWidth().background(if (i % 2 == 1) cc.surface2 else cc.surface).heightIn(min = 54.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.width(total * scale).background(if (i % 2 == 1) cc.surface2 else cc.surface).heightIn(min = 54.dp), verticalAlignment = Alignment.CenterVertically) {
                         var j = 0
                         b.rowLabel?.let { Text(it(i), fontWeight = FontWeight.Bold, color = cc.ink, modifier = Modifier.width(widths[j++] * scale).padding(horizontal = 8.dp)) }
                         b.fixed?.get(i)?.forEachIndexed { k, v ->
@@ -125,7 +125,7 @@ fun GridView(b: Grid, s: ToolState, r: Res, app: AppState, avail: Dp) {
                 b.totals?.let { tf ->
                     val map = tf(r).toMap()
                     HorizontalDivider(color = cc.line)
-                    Row(Modifier.fillMaxWidth().background(cc.surface2).heightIn(min = 46.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.width(total * scale).background(cc.surface2).heightIn(min = 46.dp), verticalAlignment = Alignment.CenterVertically) {
                         var j = 0
                         val lead = (if (b.rowLabel != null) 1 else 0) + b.fixedCols.size + b.cols.size
                         var leadW = 0.dp; repeat(lead) { leadW += widths[j++] * scale }

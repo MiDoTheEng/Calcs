@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -205,9 +207,9 @@ private fun BranchCard(code: String, title: String, desc: String, tools: List<St
     val cc = LocalCalc.current
     Surface(shape = RoundedCornerShape(18.dp), color = cc.surface, border = androidx.compose.foundation.BorderStroke(1.dp, cc.line),
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).clickable(onClick = onClick)) {
-        Row {
-            Box(Modifier.width(6.dp).height(190.dp).background(color))
-            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.height(androidx.compose.foundation.layout.IntrinsicSize.Min)) {
+            Box(Modifier.width(6.dp).fillMaxHeight().background(color))
+            Column(Modifier.padding(18.dp).heightIn(min = 170.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(Modifier.size(48.dp).clip(RoundedCornerShape(12.dp)).background(color), contentAlignment = Alignment.Center) {
                     Text(code, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                 }
@@ -284,7 +286,7 @@ fun ToolContent(app: AppState, t: ToolDef) {
                             }
                         }
                         Spacer(Modifier.height(12.dp))
-                        Tiles(try { t.tiles(s, r) } catch (e: Exception) { emptyList() }, narrow)
+                        Tiles(try { t.tiles(s, r) } catch (e: Exception) { emptyList() }, w - 32.dp)
                     }
                 }
                 t.blocks.forEach { blk ->
@@ -323,6 +325,17 @@ private fun SectionView(app: AppState, b: Section, s: com.calcs.app.core.ToolSta
                 Box(Modifier.weight(1f)) { inputs() }
                 Box(Modifier.weight(1f)) { ResultList(res) }
             }
+        } else if (wide && res.isEmpty() && b.fields.size > 2) {
+            // no results: spread the inputs over two columns
+            val half = (b.fields.size + 1) / 2
+            Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
+                listOf(b.fields.take(half), b.fields.drop(half)).forEach { part ->
+                    Column(Modifier.weight(1f)) { part.forEach { f -> FieldRow(f, s.f, app, false, onStructural = { app.reload() }) } }
+                }
+            }
+            b.action?.let { a -> Spacer(Modifier.height(8.dp)); OutlinedButton(onClick = { a.run(s); app.reload() }) { Text(a.label) } }
+        } else if (wide && res.isEmpty()) {
+            Box(Modifier.widthIn(max = 620.dp)) { inputs() }
         } else {
             if (b.fields.isNotEmpty()) inputs()
             if (res.isNotEmpty()) { if (b.fields.isNotEmpty()) Spacer(Modifier.height(12.dp)); ResultList(res) }

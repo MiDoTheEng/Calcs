@@ -63,12 +63,13 @@ fun BranchSketch(s: ToolState, r: Res, avail: Dp) {
     fun vcol(v: Double) = if (v > lim[1]) cc.vBad else if (v > lim[0]) cc.vOk else cc.vGood
     val gap = 104.dp
     val wNeeded = gap * (n + 1) + 120.dp
-    val canvasW = maxOf(wNeeded, avail - 32.dp)
+    val canvasW = wNeeded
     val tm = rememberTextMeasurer()
     val density = LocalDensity.current
 
     Panel("Branch sketch", "Tap a sprinkler to see its data next to the one before it. Pipe colour = velocity.") {
-        Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+        val fits = wNeeded <= avail - 32.dp
+        Box(if (fits) Modifier.fillMaxWidth() else Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), contentAlignment = Alignment.Center) {
             Canvas(
                 Modifier.width(canvasW).height(240.dp).pointerInput(n, canvasW) {
                     detectTapGestures { pos ->

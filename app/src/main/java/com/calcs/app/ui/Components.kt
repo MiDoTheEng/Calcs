@@ -196,19 +196,24 @@ fun ResultList(rows: List<RRow>) {
 }
 
 @Composable
-fun Tiles(rows: List<RRow>, narrow: Boolean) {
+fun Tiles(rows: List<RRow>, avail: Dp) {
     val cc = LocalCalc.current
-    val tileW = if (narrow) 160.dp else 200.dp
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+    if (rows.isEmpty()) return
+    val gap = 10.dp
+    val cols = if (avail < 600.dp) 2 else minOf(rows.size, maxOf(1, ((avail + gap) / (190.dp + gap)).toInt()))
+    val tileW = (avail - gap * (cols - 1)) / cols
+    val big = avail >= 600.dp
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(gap), verticalArrangement = Arrangement.spacedBy(gap), modifier = Modifier.fillMaxWidth()) {
         rows.forEach { r ->
-            Surface(shape = RoundedCornerShape(14.dp), color = cc.surface, border = androidx.compose.foundation.BorderStroke(1.dp, cc.line), modifier = Modifier.widthIn(min = tileW)) {
+            Surface(shape = RoundedCornerShape(14.dp), color = cc.surface, border = androidx.compose.foundation.BorderStroke(1.dp, cc.line), modifier = Modifier.width(tileW)) {
                 Column {
                     Box(Modifier.fillMaxWidth().height(4.dp).background(MaterialTheme.colorScheme.primary))
                     Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-                        Text(r.label, style = T.small, color = cc.muted)
+                        Text(r.label, style = T.small, color = cc.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Row(verticalAlignment = Alignment.Bottom) {
-                            Text(fmt(r.value, r.dec), fontSize = if (narrow) 20.sp else 24.sp, fontWeight = FontWeight.ExtraBold, style = T.num, color = statusColor(r.value, cc.ink))
-                            if (r.unit.isNotEmpty()) Text(" " + r.unit, style = T.small, color = cc.muted, modifier = Modifier.padding(bottom = 3.dp))
+                            Text(fmt(r.value, r.dec), fontSize = if (big) 23.sp else 19.sp, fontWeight = FontWeight.ExtraBold, style = T.num, color = statusColor(r.value, cc.ink),
+                                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                            if (r.unit.isNotEmpty()) Text(" " + r.unit, style = T.small, color = cc.muted, modifier = Modifier.padding(bottom = 3.dp), maxLines = 1)
                         }
                     }
                 }
