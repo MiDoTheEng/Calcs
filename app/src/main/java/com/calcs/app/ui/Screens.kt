@@ -216,7 +216,7 @@ fun HomeScreen(app: AppState) {
         containerColor = cc.bg,
         topBar = {
             TopAppBar(
-                title = { Column { Text("Calcs", fontWeight = FontWeight.ExtraBold); Text("MEP design calculations", style = T.small, color = cc.muted) } },
+                title = { Column { Text("Calcs", fontWeight = FontWeight.ExtraBold); Text("MEP design calculations · v" + appVersion(), style = T.small, color = cc.muted) } },
                 actions = { ExportActions(app, Catalog.BRANCHES) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = cc.surface)
             )
@@ -500,4 +500,10 @@ fun UnitsScreen(app: AppState) {
             }
         }
     }
+}
+
+@Composable
+private fun appVersion(): String {
+    val ctx = LocalContext.current
+    return remember { try { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "" } catch (_: Exception) { "" } }
 }

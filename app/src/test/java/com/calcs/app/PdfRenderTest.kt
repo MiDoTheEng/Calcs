@@ -38,19 +38,6 @@ class PdfRenderTest {
         }
     }
 
-    /** The real export path (PdfDocument), written to a file so the PDF itself can be inspected. */
-    @Test
-    fun realPdf() {
-        val ctx = ApplicationProvider.getApplicationContext<Context>()
-        val app = com.calcs.app.ui.AppState(ctx)
-        val dir = File("build/shots"); dir.mkdirs()
-        listOf("water", "hvac").forEach { id ->
-            val b = Catalog.BRANCHES.first { it.id == id }
-            val (_, bytes) = com.calcs.app.ui.Exporter.build(ctx, app, listOf(b), true)
-            File(dir, "real_$id.pdf").writeBytes(bytes)
-        }
-    }
-
     @Test
     fun renderReports() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()

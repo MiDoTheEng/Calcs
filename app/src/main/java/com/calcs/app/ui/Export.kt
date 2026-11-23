@@ -71,15 +71,22 @@ open class AndroidPainter(private val ctx: Context) : Painter {
         val c = canvas() ?: return 0f
         val h = w * sch.h / sch.w
         val accent = androidx.compose.ui.graphics.Color(com.calcs.app.core.Catalog.BRANCHES.firstOrNull { it.id == branchId }?.accent ?: 0xFF27364A)
-        rect(x, y, w, h, 0xFFFBFCFE.toInt(), 0xFFCFD6DF.toInt(), 0.6f)
-        c.save(); c.translate(x, y)
+        // Draw the schematic into a high-resolution bitmap, then place the bitmap on the page.
+        // (Same path as the on-screen drawing; works on every PDF canvas.)
+        val k3 = 4f
+        val bmp = android.graphics.Bitmap.createBitmap((w * k3).toInt(), (h * k3).toInt(), android.graphics.Bitmap.Config.ARGB_8888)
+        val bc = android.graphics.Canvas(bmp)
+        bc.drawColor(0xFFFBFCFE.toInt())
+        bc.scale(k3, k3)
         androidx.compose.ui.graphics.drawscope.CanvasDrawScope().draw(pdfDensity, androidx.compose.ui.unit.LayoutDirection.Ltr,
-            androidx.compose.ui.graphics.Canvas(c), androidx.compose.ui.geometry.Size(w, h)) {
+            androidx.compose.ui.graphics.Canvas(bc), androidx.compose.ui.geometry.Size(w, h)) {
             val k = Sk(this, w / sch.w, tm, LightColors, accent, -1)
             sch.draw(k)
             sch.comps.forEach { k.badge(it) }
         }
-        c.restore()
+        c.drawBitmap(bmp, null, android.graphics.RectF(x, y, x + w, y + h), Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))
+        bmp.recycle()
+        rect(x, y, w, h, null, 0xFFCFD6DF.toInt(), 0.6f)
         // legend
         var lx = x; val ly = y + h + 9f
         sch.legend.forEach { l ->
