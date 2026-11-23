@@ -91,7 +91,7 @@ fun GridHeader(b: Grid, lay: GridLayout, onlyUsed: Boolean, picker: @Composable 
         if (b.help.isNotEmpty()) Text(b.help, style = T.small, color = cc.muted, modifier = Modifier.padding(top = 4.dp))
         Spacer(Modifier.height(12.dp))
         picker()
-        if (b.skipEmpty && !lay.table) {
+        if (b.skipEmpty && b.fixed != null && !lay.table) {
             FilterChip(selected = onlyUsed, onClick = onToggle, label = { Text("Show only rows with quantities") })
             Spacer(Modifier.height(8.dp))
         }

@@ -82,7 +82,7 @@ object Reports {
                             }
                         }
                     }
-                    blocks.add(RTable(b.title, gridHead(b), kinds, rows, totals))
+                    if (rows.isNotEmpty() || b.fixed != null) blocks.add(RTable(b.title, gridHead(b), kinds, rows, totals))
                     b.results?.invoke(s, r)?.let { res -> if (res.isNotEmpty()) blocks.add(RKv("Results", res.map { rr(it) })) }
                 }
                 is Note -> blocks.add(RNote(b.text))

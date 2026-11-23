@@ -3,6 +3,7 @@ package com.calcs.app.core
 /* Water supply, drainage and rainwater tool screens. */
 object PlumbingTools {
     private val YESNO = opts("Yes", "No")
+    private val YN = optPairs("no" to "No", "yes" to "Yes")
     private val DRAIN_SEL = optPairs("" to "—", 1.25 to "1¼\"", 1.5 to "1½\"", 2 to "2\"", 2.5 to "2½\"", 3 to "3\"", 4 to "4\"", 5 to "5\"", 6 to "6\"", 8 to "8\"")
     private val LEADER_SEL = optPairs("" to "—", 2 to "2\"", 2.5 to "2½\"", 3 to "3\"", 4 to "4\"", 5 to "5\"", 6 to "6\"", 8 to "8\"")
 
@@ -40,11 +41,17 @@ object PlumbingTools {
                 outs = listOf(
                     Out("Total qty", 0) { r, i -> r.row(i, "qty") }, Out("Total WSFU", 1, key = true) { r, i -> r.row(i, "wsfu") },
                     Out("Cold", 1) { r, i -> r.row(i, "cold") }, Out("Hot", 1) { r, i -> r.row(i, "hot") }),
-                totals = { r -> listOf("Total qty" to r["totQty"], "Total WSFU" to r["totWsfu"], "Cold" to r["totCold"], "Hot" to r["totHot"]) },
+                totals = { r -> listOf("Total qty" to r["lQty"], "Total WSFU" to r["lWsfu"], "Cold" to r["lCold"], "Hot" to r["lHot"]) },
                 icon = { i -> fixtureIcon(Eng.WSFU[i].fixture) }, picker = "unit",
-                results = { _, r -> listOf(RRow("Total WSFU (building main)", r["totWsfu"], "WSFU", 1), RRow("Hunter curve used (auto)", r["curve"]),
-                    RRow("Peak flow (Hunter, interpolated)", r["gpm"], "gpm", 2), RRow("Peak flow Q", r["ls"], "L/s", 3, true)) },
                 skipEmpty = true),
+            Grid("2b · Other fixtures (not in the table)", "other", titleKey = "name", minRows = 0, skipEmpty = true,
+                help = "A fixture that isn't listed: type its name and its WSFU from the code or manufacturer. Hot = Yes splits it ¾ cold + ¾ hot (IPC rule). Flush valve = Yes switches the Hunter curve.",
+                cols = listOf(Field("name", "Fixture", kind = Kind.TEXT, width = 170), Field("wsfu", "WSFU each"), Field("hot", "Hot water?", kind = Kind.SELECT, options = YN),
+                    Field("fv", "Flush valve?", kind = Kind.SELECT, options = YN), Field("unit", "Qty / unit"), Field("extra", "Extra qty")),
+                outs = listOf(Out("Total qty", 0) { r, i -> r.list("other").getOrNull(i)?.get("qty") }, Out("Total WSFU", 1, key = true) { r, i -> r.list("other").getOrNull(i)?.get("wsfu") }),
+                add = { row("name" to "", "wsfu" to "", "hot" to "yes", "fv" to "no", "unit" to 0, "extra" to 0) },
+                results = { _, r -> listOf(RRow("Total WSFU, all fixtures (building main)", r["totWsfu"], "WSFU", 1), RRow("Hunter curve used (auto)", r["curve"]),
+                    RRow("Peak flow (Hunter, interpolated)", r["gpm"], "gpm", 2), RRow("Peak flow Q", r["ls"], "L/s", 3, true)) }),
             Section("3 · Main pipe sizing", listOf(
                 Field("vTarget", "Target design velocity", "m/s"),
                 Field("id", "Selected pipe INTERNAL diameter", "mm", "Real ID from the catalogue (≥ required)"),
@@ -110,8 +117,13 @@ object PlumbingTools {
                 fixedCols = listOf(FixedCol("Fixture"), FixedCol("Demand (US gal/h)", 0)),
                 cols = listOf(Field("q", "Quantity")),
                 outs = listOf(Out("L/h each", 1) { r, i -> r.row(i, "lh") }, Out("Total (L/h)", 1, key = true) { r, i -> r.row(i, "total") }),
-                totals = { r -> listOf("Total (L/h)" to r["possible"]) },
+                totals = { r -> listOf("Total (L/h)" to r["lPossible"]) },
                 icon = { i -> fixtureIcon(Eng.HOT_FIXTURES[i].first) }, picker = "q"),
+            Grid("1b · Other fixtures (not in the table)", "other", titleKey = "name", minRows = 0, skipEmpty = true,
+                help = "A fixture that isn't listed: its hot water demand per fixture from the manufacturer (L/h; 1 US gal/h = 3.785 L/h).",
+                cols = listOf(Field("name", "Fixture", kind = Kind.TEXT, width = 170), Field("lh", "Demand each", "L/h"), Field("q", "Quantity")),
+                outs = listOf(Out("Total (L/h)", 1, key = true) { r, i -> r.list("other").getOrNull(i)?.get("total") }),
+                add = { row("name" to "", "lh" to "", "q" to 1) }),
             Section("2 · Demand & storage", listOf(
                 Field("df", "Demand factor", "-", "Apartment house 0.30"),
                 Field("sf", "Storage capacity factor", "-", "Apartment house 1.25")
@@ -151,8 +163,14 @@ object PlumbingTools {
                 fixedCols = listOf(FixedCol("Fixture"), FixedCol("Occupancy"), FixedCol("DFU each", 1), FixedCol("System")),
                 cols = listOf(Field("unit", "Qty / unit"), Field("extra", "Extra qty")),
                 outs = listOf(Out("Total qty", 0) { r, i -> r.row(i, "qty") }, Out("Total DFU", 1, key = true) { r, i -> r.row(i, "dfu") }),
-                totals = { r -> listOf("Total DFU" to r["total"]) },
-                icon = { i -> fixtureIcon(Eng.DFU[i].fixture) }, picker = "unit",
+                totals = { r -> listOf("Total DFU" to r["lTotal"]) },
+                icon = { i -> fixtureIcon(Eng.DFU[i].fixture) }, picker = "unit"),
+            Grid("Other fixtures (not in the table)", "other", titleKey = "name", minRows = 0, skipEmpty = true,
+                help = "A fixture that isn't listed: its DFU from the code or manufacturer (or by trap size, IPC 709.2). Soil = WC / urinal type, Waste = the rest.",
+                cols = listOf(Field("name", "Fixture", kind = Kind.TEXT, width = 170), Field("dfu", "DFU each"), Field("sys", "System", kind = Kind.SELECT, options = opts("Waste", "Soil")),
+                    Field("unit", "Qty / unit"), Field("extra", "Extra qty")),
+                outs = listOf(Out("Total qty", 0) { r, i -> r.list("other").getOrNull(i)?.get("qty") }, Out("Total DFU", 1, key = true) { r, i -> r.list("other").getOrNull(i)?.get("dfu") }),
+                add = { row("name" to "", "dfu" to "", "sys" to "Waste", "unit" to 0, "extra" to 0) },
                 results = { _, r -> buildList {
                     add(RRow("Total DFU (combined / building drain)", r["total"], "DFU", 1, true)); add(RRow("Soil DFU (building)", r["soil"], "DFU", 1))
                     add(RRow("Waste DFU (building)", r["waste"], "DFU", 1)); add(RRow("Soil DFU per unit", r["unitSoil"], "DFU", 1)); add(RRow("Waste DFU per unit", r["unitWaste"], "DFU", 1))

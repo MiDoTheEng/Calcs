@@ -154,6 +154,16 @@ object Eng {
             r.rows.add(hashMapOf("qty" to q, "wsfu" to f.total * q, "cold" to f.cold * q, "hot" to f.hot * q))
             tq += q; tw += f.total * q; tc += f.cold * q; th += f.hot * q
         }
+        r["lQty"] = tq; r["lWsfu"] = tw; r["lCold"] = tc; r["lHot"] = th
+        s.list("other").forEach { o ->
+            val q = o.n0("unit") * units + o.n0("extra")
+            val each = o.n0("wsfu")
+            val hot = o.s("hot") == "yes"
+            val c = if (hot) each * 0.75 else each; val h = if (hot) each * 0.75 else 0.0
+            if (q > 0 && o.s("fv") == "yes") fv = true
+            r.list("other").add(hashMapOf("qty" to q, "wsfu" to each * q, "cold" to c * q, "hot" to h * q))
+            tq += q; tw += each * q; tc += c * q; th += h * q
+        }
         r["totQty"] = tq; r["totWsfu"] = tw; r["totCold"] = tc; r["totHot"] = th
         r["curve"] = if (fv) "Flush valve" else "Flush tank"
         val gpm = hunter(tw, fv)
@@ -213,6 +223,11 @@ object Eng {
             r.rows.add(hashMapOf("lh" to lh, "total" to lh * n))
             possible += lh * n
         }
+        r["lPossible"] = possible
+        s.list("other").forEach { o ->
+            val lh = o.n0("lh"); val tot = lh * o.n0("q")
+            r.list("other").add(hashMapOf("total" to tot)); possible += tot
+        }
         val pmd = possible * s.n0("df")
         val storage = pmd * s.n0("sf")
         val dT = s.n0("ts") - s.n0("tc")
@@ -242,6 +257,13 @@ object Eng {
             t += d
             if (f.system == "Soil") { so += d; us += f.dfu * per }
             if (f.system == "Waste") { w += d; uw += f.dfu * per }
+        }
+        r["lTotal"] = t
+        s.list("other").forEach { o ->
+            val per = o.n0("unit"); val q = per * units + o.n0("extra"); val d = o.n0("dfu") * q
+            r.list("other").add(hashMapOf("qty" to q, "dfu" to d))
+            t += d
+            if (o.s("sys") == "Soil") { so += d; us += o.n0("dfu") * per } else { w += d; uw += o.n0("dfu") * per }
         }
         r["total"] = t; r["soil"] = so; r["waste"] = w; r["unitSoil"] = us; r["unitWaste"] = uw
         r["warning"] = if (comb) "Bathroom groups entered: combined (one-pipe) system only" else null
