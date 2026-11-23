@@ -55,6 +55,7 @@ class ScreenshotTest(private val name: String, private val screen: String, priva
             rule.onNodeWithText("Next ›", useUnmergedTree = true).performClick()
             rule.waitForIdle()
             rule.onNodeWithText("7", useUnmergedTree = true).performClick()
+            rule.mainClock.advanceTimeBy(600)
             rule.waitForIdle()
         }
         val root = rule.activity.window.decorView
