@@ -131,10 +131,10 @@ class Sk(val ds: DrawScope, val s: Float, val tm: TextMeasurer, val cc: CalcColo
     }
     fun fixture(x: Float, y: Float, kind: String) {
         when (kind) {
-            "wc" -> { rect(x - 9, y - 16, 18, 10, cc.surface, cc.muted, 2f); rect(x - 11, y - 6, 22, 12, cc.surface, cc.muted, 2f, 6f) }
-            "lav" -> { rect(x - 12, y - 8, 24, 10, cc.surface, cc.muted, 2f, 5f); line(x, y + 2, x, y + 14, cc.muted, 2f) }
-            "shower" -> { line(x, y - 20, x, y + 6, cc.muted, 2f); line(x, y - 20, x + 10, y - 20, cc.muted, 2f); rect(x + 6, y - 22, 10, 5, cc.muted, null) }
-            else -> rect(x - 13, y - 7, 26, 12, cc.surface, cc.muted, 2f, 2f)
+            "wc" -> { rect(x - 9, y - 16, 18f, 10f, cc.surface, cc.muted, 2f); rect(x - 11, y - 6, 22f, 12f, cc.surface, cc.muted, 2f, 6f) }
+            "lav" -> { rect(x - 12, y - 8, 24f, 10f, cc.surface, cc.muted, 2f, 5f); line(x, y + 2, x, y + 14, cc.muted, 2f) }
+            "shower" -> { line(x, y - 20, x, y + 6, cc.muted, 2f); line(x, y - 20, x + 10, y - 20, cc.muted, 2f); rect(x + 6, y - 22, 10f, 5f, cc.muted, null) }
+            else -> rect(x - 13, y - 7, 26f, 12f, cc.surface, cc.muted, 2f, 2f)
         }
     }
     fun sprinkler(x: Float, y: Float) { line(x, y, x, y + 10, FIRE, 2.5f); line(x - 6, y + 12, x + 6, y + 12, FIRE, 2.5f) }
