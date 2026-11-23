@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
@@ -48,6 +49,14 @@ class ScreenshotTest(private val name: String, private val screen: String, priva
             rule.onNodeWithText(b.tools[tab - 1].title, useUnmergedTree = true).performClick()
             rule.waitForIdle()
         }
+        if (name.startsWith("keypad")) {   // open the number pad on "Number of identical units"
+            rule.onAllNodesWithText("20", useUnmergedTree = true)[0].performClick()
+            rule.waitForIdle()
+            rule.onNodeWithText("Next ›", useUnmergedTree = true).performClick()
+            rule.waitForIdle()
+            rule.onNodeWithText("7", useUnmergedTree = true).performClick()
+            rule.waitForIdle()
+        }
         val root = rule.activity.window.decorView
         val bmp = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888)
         root.draw(Canvas(bmp))
@@ -83,6 +92,8 @@ class ScreenshotTest(private val name: String, private val screen: String, priva
             l.add(arrayOf("phone_hvac_2", "hvac", 3, PHONE_TALL))
             l.add(arrayOf("phone_fire_0_view", "fire", 1, PHONE))
             l.add(arrayOf("units_tablet", "units", 0, "w800dp-h1280dp-mdpi"))
+            l.add(arrayOf("keypad_tablet", "water", 1, TAB_L))
+            l.add(arrayOf("keypad_phone", "water", 1, PHONE))
             return l
         }
     }
