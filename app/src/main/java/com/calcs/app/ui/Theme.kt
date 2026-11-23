@@ -20,7 +20,7 @@ data class CalcColors(
     val ok: Color, val bad: Color, val head: Color, val vGood: Color, val vOk: Color, val vBad: Color
 )
 
-private val Light = CalcColors(
+val LightColors = CalcColors(
     bg = Color(0xFFEEF1F5), surface = Color.White, surface2 = Color(0xFFF6F8FB), ink = Color(0xFF17202B), muted = Color(0xFF5B6878), line = Color(0xFFDCE2EA),
     inBg = Color(0xFFFFF8E1), inLine = Color(0xFFE6D28C), resBg = Color(0xFFF1F8F3), keyBg = Color(0xFFDEF1E3), keyInk = Color(0xFF145A2C),
     ok = Color(0xFF1D7A3A), bad = Color(0xFFB3261E), head = Color(0xFF27364A), vGood = Color(0xFF2E9E5B), vOk = Color(0xFFD99A00), vBad = Color(0xFFD23C3C)
@@ -31,7 +31,7 @@ private val Dark = CalcColors(
     ok = Color(0xFF5CCF83), bad = Color(0xFFFF8A80), head = Color(0xFF2C3B50), vGood = Color(0xFF3CC47A), vOk = Color(0xFFF2C14E), vBad = Color(0xFFFF6B5E)
 )
 
-val LocalCalc = staticCompositionLocalOf { Light }
+val LocalCalc = staticCompositionLocalOf { LightColors }
 
 object T {
     val num = TextStyle(fontFeatureSettings = "tnum")
@@ -50,7 +50,7 @@ fun accentFor(argb: Long, dark: Boolean): Color {
 @Composable
 fun CalcsTheme(accent: Long = 0xFF27364A, content: @Composable () -> Unit) {
     val dark = isSystemInDarkTheme()
-    val cc = if (dark) Dark else Light
+    val cc = if (dark) Dark else LightColors
     val a = accentFor(accent, dark)
     val scheme = if (dark) darkColorScheme(primary = a, onPrimary = Color.Black, background = cc.bg, surface = cc.surface, onSurface = cc.ink, onBackground = cc.ink,
         surfaceVariant = cc.surface2, onSurfaceVariant = cc.muted, outline = cc.line, secondaryContainer = a.copy(alpha = 0.25f))

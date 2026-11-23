@@ -12,6 +12,12 @@ interface Painter {
     fun measure(s: String, size: Float, bold: Boolean): Float
     fun rect(x: Float, y: Float, w: Float, h: Float, fill: Int?, stroke: Int? = null, lw: Float = 0.5f)
     fun line(x1: Float, y1: Float, x2: Float, y2: Float, color: Int, lw: Float = 0.5f)
+    /** System schematic (drawn by the app). Height it needs at width w, 0 if none. */
+    fun schematicHeight(branchId: String, w: Float): Float = 0f
+    /** Draws the schematic + legend at (x, y), returns the height used. */
+    fun schematic(branchId: String, x: Float, y: Float, w: Float): Float = 0f
+    /** Numbered component lines for the schematic. */
+    fun schematicParts(branchId: String): List<String> = emptyList()
 }
 
 object PdfLayout {
@@ -184,7 +190,38 @@ object PdfLayout {
             y += 12f
         }
 
+        fun overview(b: BranchReport) {
+            val sh = p.schematicHeight(b.id, avail)
+            if (sh <= 0f) return
+            ensure(sh + 60f)
+            p.rect(mg, y, 4f, 22f, accent)
+            p.text(mg + 12, y + 3, "${b.title} – system overview", 13f, true, INK)
+            y += 32f
+            y += p.schematic(b.id, mg, y, avail) + 6f
+            val parts = p.schematicParts(b.id)
+            if (parts.isNotEmpty()) {
+                val colW = (avail - 12f) / 2; val half = (parts.size + 1) / 2
+                val left = parts.take(half); val right = parts.drop(half)
+                var ly = y; var ry = y
+                fun col(items: List<String>, x: Float, start: Float): Float {
+                    var yy = start
+                    items.forEach { t ->
+                        val lines = wrap(p, t, 7.6f, false, colW - 4)
+                        if (yy + lines.size * 9.5f > bottom) return yy
+                        lines.forEachIndexed { k, l -> p.text(x, yy + k * 9.5f, l, 7.6f, false, INK) }
+                        yy += lines.size * 9.5f + 2f
+                    }
+                    return yy
+                }
+                ensure(minOf(half * 12f, 200f))
+                ly = col(left, mg, y); ry = col(right, mg + colW + 12f, y)
+                y = maxOf(ly, ry) + 10f
+            }
+        }
+
+        var lastBranch: String? = null
         tools.forEachIndexed { ti, (b, t) ->
+            if (b.id != lastBranch) { lastBranch = b.id; overview(b) }
             ensure(110f)
             if (ti > 0) y += 8f
             p.rect(mg, y, 4f, 30f, accent)

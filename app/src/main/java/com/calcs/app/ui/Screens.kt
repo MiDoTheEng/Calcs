@@ -117,7 +117,7 @@ fun ExportActions(app: AppState, branches: List<Branch>, current: ToolDef? = nul
         busy = true
         scope.launch {
             try {
-                saved = withContext(Dispatchers.Default) { jobs.map { bs -> val (name, bytes) = Exporter.build(app, bs, pdf); Exporter.save(ctx, name, bytes) } }
+                saved = withContext(Dispatchers.Default) { jobs.map { bs -> val (name, bytes) = Exporter.build(ctx, app, bs, pdf); Exporter.save(ctx, name, bytes) } }
             } catch (e: Exception) { error = e.message ?: e.toString() }
             busy = false
         }

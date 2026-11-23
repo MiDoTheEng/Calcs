@@ -17,23 +17,32 @@ import com.calcs.app.core.Painter
 import com.calcs.app.core.Reports
 import com.calcs.app.core.Xlsx
 import java.io.ByteArrayOutputStream
+
+private fun androidx.compose.ui.graphics.Color.toArgbInt(): Int = android.graphics.Color.argb((alpha * 255).toInt(), (red * 255).toInt(), (green * 255).toInt(), (blue * 255).toInt())
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /** Draws the report onto Android's PdfDocument (A4, units = points). */
-class AndroidPainter : Painter {
+open class AndroidPainter(private val ctx: Context) : Painter {
+    private val pdfDensity = androidx.compose.ui.unit.Density(0.75f)
+    private val tm by lazy {
+        androidx.compose.ui.text.TextMeasurer(androidx.compose.ui.text.font.createFontFamilyResolver(ctx), pdfDensity, androidx.compose.ui.unit.LayoutDirection.Ltr)
+    }
     override val pageW = 595f
     override val pageH = 842f
-    val doc = PdfDocument()
+    val doc by lazy { PdfDocument() }
     private var page: PdfDocument.Page? = null
+    /** Canvas of the current page (overridable so the layout can be rendered to images in tests). */
+    open fun canvas(): android.graphics.Canvas? = page?.canvas
     private var n = 0
     private val reg = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT }
     private val bold = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD }
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
 
-    override fun newPage() {
+    override fun newPage() = startPdfPage()
+    protected fun startPdfPage() {
         n++
         page = doc.startPage(PdfDocument.PageInfo.Builder(pageW.toInt(), pageH.toInt(), n).create())
     }
@@ -41,27 +50,61 @@ class AndroidPainter : Painter {
     private fun p(size: Float, b: Boolean) = (if (b) bold else reg).also { it.textSize = size }
     override fun measure(s: String, size: Float, bold: Boolean) = p(size, bold).measureText(s)
     override fun text(x: Float, y: Float, s: String, size: Float, bold: Boolean, color: Int, align: Int) {
-        val c = page?.canvas ?: return
+        val c = canvas() ?: return
         val paint = p(size, bold); paint.color = color
         val w = paint.measureText(s)
         val xx = when (align) { 2 -> x - w; 1 -> x - w / 2; else -> x }
         c.drawText(s, xx, y + size * 0.8f, paint)
     }
     override fun rect(x: Float, y: Float, w: Float, h: Float, fill: Int?, stroke: Int?, lw: Float) {
-        val c = page?.canvas ?: return
+        val c = canvas() ?: return
         if (fill != null) { this.fill.color = fill; c.drawRect(x, y, x + w, y + h, this.fill) }
         if (stroke != null) { this.stroke.color = stroke; this.stroke.strokeWidth = lw; c.drawRect(x, y, x + w, y + h, this.stroke) }
     }
     override fun line(x1: Float, y1: Float, x2: Float, y2: Float, color: Int, lw: Float) {
-        val c = page?.canvas ?: return
+        val c = canvas() ?: return
         stroke.color = color; stroke.strokeWidth = lw; c.drawLine(x1, y1, x2, y2, stroke)
+    }
+
+    override fun schematicHeight(branchId: String, w: Float): Float = schematicFor(branchId)?.let { w * it.h / it.w + 20f } ?: 0f
+
+    override fun schematic(branchId: String, x: Float, y: Float, w: Float): Float {
+        val sch = schematicFor(branchId) ?: return 0f
+        val c = canvas() ?: return 0f
+        val h = w * sch.h / sch.w
+        val accent = androidx.compose.ui.graphics.Color(com.calcs.app.core.Catalog.BRANCHES.firstOrNull { it.id == branchId }?.accent ?: 0xFF27364A)
+        rect(x, y, w, h, 0xFFFBFCFE.toInt(), 0xFFCFD6DF.toInt(), 0.6f)
+        c.save(); c.translate(x, y)
+        androidx.compose.ui.graphics.drawscope.CanvasDrawScope().draw(pdfDensity, androidx.compose.ui.unit.LayoutDirection.Ltr,
+            androidx.compose.ui.graphics.Canvas(c), androidx.compose.ui.geometry.Size(w, h)) {
+            val k = Sk(this, w / sch.w, tm, LightColors, accent, -1)
+            sch.draw(k)
+            sch.comps.forEach { k.badge(it) }
+        }
+        c.restore()
+        // legend
+        var lx = x; val ly = y + h + 9f
+        sch.legend.forEach { l ->
+            stroke.color = l.color.toArgbInt(); stroke.strokeWidth = 2.2f
+            stroke.pathEffect = if (l.dashed) android.graphics.DashPathEffect(floatArrayOf(4f, 3f), 0f) else null
+            c.drawLine(lx, ly, lx + 16f, ly, stroke); stroke.pathEffect = null
+            text(lx + 20f, ly - 3.5f, l.label, 7f, false, 0xFF1B2430.toInt())
+            lx += 26f + measure(l.label, 7f, false) + 10f
+        }
+        return h + 20f
+    }
+
+    override fun schematicParts(branchId: String): List<String> {
+        val sch = schematicFor(branchId) ?: return emptyList()
+        val br = com.calcs.app.core.Catalog.BRANCHES.firstOrNull { it.id == branchId }
+        return sch.comps.map { c -> "${c.n}.  ${c.name}" + (c.tool?.let { t -> br?.tools?.getOrNull(t)?.let { "  (sized in: ${it.title})" } } ?: "") }
     }
 }
 
 class Saved(val uri: Uri, val mime: String, val name: String)
 
 object Exporter {
-    fun build(app: AppState, branches: List<Branch>, pdf: Boolean): Pair<String, ByteArray> {
+    fun build(ctx: Context, app: AppState, branches: List<Branch>, pdf: Boolean): Pair<String, ByteArray> {
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
         val model = Reports.build(branches, app.states, app.project, today)
         val full = com.calcs.app.core.Catalog.BRANCHES.firstOrNull { it.id == branches[0].id }
@@ -73,7 +116,7 @@ object Exporter {
         val slug = { s: String -> s.replace(Regex("[^A-Za-z0-9\\u0600-\\u06FF]+"), "_").trim('_').take(40) }
         val name = listOf("Calcs", slug(app.project.name).ifEmpty { "Project" }, slug(title), today).joinToString("_") + if (pdf) ".pdf" else ".xlsx"
         val bytes = if (pdf) {
-            val painter = AndroidPainter()
+            val painter = AndroidPainter(ctx)
             val accent = if (branches.size > 1) 0xFF27364A.toInt() else branches[0].accent.toInt()
             PdfLayout.render(painter, model, title, accent)
             val out = ByteArrayOutputStream(); painter.doc.writeTo(out); painter.doc.close(); out.toByteArray()
