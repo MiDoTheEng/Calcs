@@ -201,7 +201,7 @@ fun Tiles(rows: List<RRow>, avail: Dp) {
     if (rows.isEmpty()) return
     val gap = 10.dp
     val cols = if (avail < 600.dp) 2 else minOf(rows.size, maxOf(1, ((avail + gap) / (190.dp + gap)).toInt()))
-    val tileW = (avail - gap * (cols - 1)) / cols
+    val tileW = (avail - gap * (cols - 1)) / cols - 1.dp
     val big = avail >= 600.dp
     FlowRow(horizontalArrangement = Arrangement.spacedBy(gap), verticalArrangement = Arrangement.spacedBy(gap), modifier = Modifier.fillMaxWidth()) {
         rows.forEach { r ->
