@@ -97,37 +97,106 @@ fun CalcsApp(app: AppState) {
 
 /* ================================ export ================================ */
 
+/**
+ * PDF / Excel buttons. Each opens a picker: on a branch screen → this calculation or the whole system;
+ * on the home screen → pick systems, one file per system (or one combined file).
+ */
 @Composable
-fun ExportActions(app: AppState, branches: List<Branch>) {
+fun ExportActions(app: AppState, branches: List<Branch>, current: ToolDef? = null) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
-    var saved by remember { mutableStateOf<Saved?>(null) }
+    var saved by remember { mutableStateOf<List<Saved>>(emptyList()) }
     var error by remember { mutableStateOf<String?>(null) }
-    fun run(pdf: Boolean) {
+    var picking by remember { mutableStateOf<Boolean?>(null) }          // null = closed, true = PDF, false = Excel
+    var onlyThis by remember { mutableStateOf(true) }
+    val chosen = remember { androidx.compose.runtime.mutableStateMapOf<String, Boolean>() }
+    var separate by remember { mutableStateOf(true) }
+
+    fun run(pdf: Boolean, jobs: List<List<Branch>>) {
         busy = true
         scope.launch {
             try {
-                val s = withContext(Dispatchers.Default) { val (name, bytes) = Exporter.build(app, branches, pdf); Exporter.save(ctx, name, bytes) }
-                saved = s
+                saved = withContext(Dispatchers.Default) { jobs.map { bs -> val (name, bytes) = Exporter.build(app, bs, pdf); Exporter.save(ctx, name, bytes) } }
             } catch (e: Exception) { error = e.message ?: e.toString() }
             busy = false
         }
     }
+    fun sub(b: Branch, t: ToolDef) = Branch(b.id, b.title, b.short, b.accent, b.desc, listOf(t))
+
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(end = 8.dp)) {
-        Button(onClick = { run(true) }, enabled = !busy) { Text("PDF", fontWeight = FontWeight.Bold) }
-        OutlinedButton(onClick = { run(false) }, enabled = !busy) { Text("Excel", fontWeight = FontWeight.Bold) }
+        Button(onClick = { picking = true }, enabled = !busy) { Text("PDF", fontWeight = FontWeight.Bold) }
+        OutlinedButton(onClick = { picking = false }, enabled = !busy) { Text("Excel", fontWeight = FontWeight.Bold) }
     }
-    if (busy) AlertDialog(onDismissRequest = {}, confirmButton = {}, title = { Text("Preparing the file…") },
+
+    picking?.let { pdf ->
+        val kind = if (pdf) "PDF" else "Excel"
+        val single = branches.size == 1
+        AlertDialog(
+            onDismissRequest = { picking = null },
+            title = { Text("Export $kind") },
+            text = {
+                Column {
+                    if (single) {
+                        val b = branches[0]
+                        if (current != null && b.tools.size > 1) {
+                            ChoiceRow(onlyThis, true, "This calculation only", current.title) { onlyThis = true }
+                            ChoiceRow(!onlyThis, true, "Whole ${b.title} system", "${b.tools.size} calculations in one file") { onlyThis = false }
+                        } else Text("${b.title} – all calculations in one file")
+                    } else {
+                        Text("Pick the systems to export", style = T.small, color = LocalCalc.current.muted)
+                        Spacer(Modifier.height(6.dp))
+                        branches.forEach { b ->
+                            ChoiceRow(chosen[b.id] == true, false, b.title, b.tools.joinToString(" · ") { it.title }) { chosen[b.id] = chosen[b.id] != true }
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        ChoiceRow(separate, false, "One file per system", "Off = all picked systems in one file") { separate = !separate }
+                    }
+                }
+            },
+            confirmButton = {
+                val picked = branches.filter { chosen[it.id] == true }
+                TextButton(enabled = single || picked.isNotEmpty(), onClick = {
+                    picking = null
+                    val jobs: List<List<Branch>> = if (single) {
+                        val b = branches[0]
+                        if (current != null && b.tools.size > 1 && onlyThis) listOf(listOf(sub(b, current))) else listOf(listOf(b))
+                    } else if (separate) picked.map { listOf(it) } else listOf(picked)
+                    run(pdf, jobs)
+                }) { Text("Export", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = { TextButton(onClick = { picking = null }) { Text("Cancel") } }
+        )
+    }
+
+    if (busy) AlertDialog(onDismissRequest = {}, confirmButton = {}, title = { Text("Preparing…") },
         text = { Row(verticalAlignment = Alignment.CenterVertically) { CircularProgressIndicator(Modifier.size(28.dp)); Spacer(Modifier.width(16.dp)); Text("Building the calculation report") } })
-    saved?.let { s ->
-        AlertDialog(onDismissRequest = { saved = null },
-            title = { Text("Saved to Downloads/Calcs") },
-            text = { Text(s.name) },
-            confirmButton = { Row { TextButton(onClick = { saved = null; Exporter.share(ctx, s) }) { Text("Share") }; TextButton(onClick = { saved = null; Exporter.open(ctx, s) }) { Text("Open") } } },
-            dismissButton = { TextButton(onClick = { saved = null }) { Text("Done") } })
+    if (saved.isNotEmpty()) {
+        val list = saved
+        AlertDialog(onDismissRequest = { saved = emptyList() },
+            title = { Text(if (list.size == 1) "Saved to Downloads/Calcs" else "${list.size} files saved to Downloads/Calcs") },
+            text = { Column { list.forEach { Text(it.name, style = T.small) } } },
+            confirmButton = {
+                Row {
+                    TextButton(onClick = { saved = emptyList(); Exporter.shareMany(ctx, list) }) { Text("Share") }
+                    if (list.size == 1) TextButton(onClick = { saved = emptyList(); Exporter.open(ctx, list[0]) }) { Text("Open") }
+                }
+            },
+            dismissButton = { TextButton(onClick = { saved = emptyList() }) { Text("Done") } })
     }
     error?.let { e -> AlertDialog(onDismissRequest = { error = null }, title = { Text("Could not export") }, text = { Text(e) }, confirmButton = { TextButton(onClick = { error = null }) { Text("OK") } }) }
+}
+
+@Composable
+private fun ChoiceRow(on: Boolean, radio: Boolean, title: String, sub: String, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (radio) androidx.compose.material3.RadioButton(selected = on, onClick = onClick)
+        else androidx.compose.material3.Checkbox(checked = on, onCheckedChange = { onClick() })
+        Column(Modifier.padding(start = 4.dp)) {
+            Text(title, fontWeight = FontWeight.SemiBold)
+            Text(sub, style = T.small, color = LocalCalc.current.muted)
+        }
+    }
 }
 
 @Composable
@@ -236,7 +305,7 @@ fun BranchScreen(app: AppState, b: Branch) {
                 TopAppBar(
                     navigationIcon = { IconButton(onClick = { app.saveNow(); app.screen = Screen.Home }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
                     title = { Column { Text(b.title, fontWeight = FontWeight.Bold); Text(app.project.name.ifBlank { "Untitled project" }, style = T.small, color = cc.muted, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
-                    actions = { ExportActions(app, listOf(b)) },
+                    actions = { ExportActions(app, listOf(b), b.tools[tab]) },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = cc.surface)
                 )
                 ScrollableTabRow(selectedTabIndex = tab, edgePadding = 12.dp, containerColor = cc.surface) {

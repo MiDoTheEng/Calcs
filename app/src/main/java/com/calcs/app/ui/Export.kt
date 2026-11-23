@@ -64,7 +64,12 @@ object Exporter {
     fun build(app: AppState, branches: List<Branch>, pdf: Boolean): Pair<String, ByteArray> {
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
         val model = Reports.build(branches, app.states, app.project, today)
-        val title = if (branches.size > 1) "MEP Calculations" else branches[0].title
+        val full = com.calcs.app.core.Catalog.BRANCHES.firstOrNull { it.id == branches[0].id }
+        val title = when {
+            branches.size > 1 -> "MEP Calculations"
+            branches[0].tools.size == 1 && (full?.tools?.size ?: 1) > 1 -> "${branches[0].title} – ${branches[0].tools[0].title}"
+            else -> branches[0].title
+        }
         val slug = { s: String -> s.replace(Regex("[^A-Za-z0-9\\u0600-\\u06FF]+"), "_").trim('_').take(40) }
         val name = listOf("Calcs", slug(app.project.name).ifEmpty { "Project" }, slug(title), today).joinToString("_") + if (pdf) ".pdf" else ".xlsx"
         val bytes = if (pdf) {
@@ -95,6 +100,14 @@ object Exporter {
         val i = Intent(Intent.ACTION_VIEW).setDataAndType(s.uri, s.mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
         try { ctx.startActivity(Intent.createChooser(i, "Open with").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
         catch (_: ActivityNotFoundException) { Toast.makeText(ctx, "No app installed that opens this file. It is in Downloads/Calcs.", Toast.LENGTH_LONG).show() }
+    }
+
+    fun shareMany(ctx: Context, list: List<Saved>) {
+        if (list.size == 1) { share(ctx, list[0]); return }
+        val i = Intent(Intent.ACTION_SEND_MULTIPLE).setType("*/*")
+            .putParcelableArrayListExtra(Intent.EXTRA_STREAM, ArrayList(list.map { it.uri })).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        try { ctx.startActivity(Intent.createChooser(i, "Share calculations").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        catch (_: ActivityNotFoundException) { Toast.makeText(ctx, "No app available to share with.", Toast.LENGTH_LONG).show() }
     }
 
     fun share(ctx: Context, s: Saved) {
