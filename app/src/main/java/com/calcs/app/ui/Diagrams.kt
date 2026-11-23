@@ -336,7 +336,7 @@ fun InputDiagramView(id: String, fields: List<Field>, map: MutableMap<String, St
                 tags.forEach { (t, f) ->
                     val active = kp?.active?.id == fieldId(map, f.k)
                     val value = map[f.k].orEmpty()
-                    val valueText = (if (value.isBlank()) "—" else value) + if (f.unit.isNotEmpty()) " " + f.unit else ""
+                    val valueText = (if (value.isBlank()) "—" else value) + if (f.unit.isNotEmpty() && f.unit != "-") " " + f.unit else ""
                     val m = Modifier.clip(RoundedCornerShape(8.dp))
                         .background(if (active) accent else cc.surface)
                         .border(1.5.dp, accent, RoundedCornerShape(8.dp))
