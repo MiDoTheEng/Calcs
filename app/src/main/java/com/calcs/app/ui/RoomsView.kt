@@ -120,7 +120,8 @@ private fun RoomCard(b: Rooms, rooms: MutableList<RowData>, i: Int, r: RowData, 
                     val lab = b.labels.getOrNull(idx) ?: listOf("?", "")
                     Text(base(lab[0]), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = cc.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     val variants = b.labels.indices.filter { base(b.labels[it][0]) == base(lab[0]) }
-                    val vt = (lab[0].removePrefix(base(lab[0])).trim(' ', ',', '-', '(', ')') + " " + lab.getOrElse(1) { "" }).trim().trim('·', ' ').replace("-", "").trim()
+                    val vt = (listOf(lab[0].removePrefix(base(lab[0])).trim(' ', ',', '-', '(', ')')) + lab.getOrElse(1) { "" }.split("·").map { it.trim() })
+                        .filter { it.isNotEmpty() && it != "-" }.joinToString(" · ").replaceFirstChar { it.uppercase() }
                     if (variants.size > 1) Box {
                         Text("${vt.ifEmpty { "type" }} ▾", fontSize = 11.5.sp, color = accent, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.clickable { menu = true }.padding(vertical = 2.dp))
