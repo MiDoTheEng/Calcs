@@ -73,6 +73,8 @@ private val SA = Color(0xFF3E9BE0); private val RA = Color(0xFF8B6BD6); private 
 
 /** Small drawing kit in schematic units (scaled to the canvas). */
 class Sk(val ds: DrawScope, val s: Float, val tm: TextMeasurer, val cc: CalcColors, val accent: Color, val sel: Int) {
+    /** text / badge scale: follows the drawing but never smaller than ~0.9 dp per unit */
+    val ts = maxOf(s, 0.9f * ds.density)
     fun o(x: Float, y: Float) = Offset(x * s, y * s)
     fun line(x1: Float, y1: Float, x2: Float, y2: Float, c: Color, w: Float = 4f, dashed: Boolean = false) =
         ds.drawLine(c, o(x1, y1), o(x2, y2), strokeWidth = w * s, cap = StrokeCap.Round, pathEffect = if (dashed) PathEffect.dashPathEffect(floatArrayOf(10 * s, 7 * s)) else null)
@@ -86,7 +88,7 @@ class Sk(val ds: DrawScope, val s: Float, val tm: TextMeasurer, val cc: CalcColo
         if (stroke != null) ds.drawCircle(stroke, r * s, o(x, y), style = Stroke(sw * s))
     }
     fun text(x: Float, y: Float, t: String, fs: Float = 12f, c: Color = cc.ink, bold: Boolean = false, center: Boolean = true) {
-        val st = TextStyle(fontSize = with(ds) { (fs * s).toSp() }, color = c, fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal)
+        val st = TextStyle(fontSize = with(ds) { (fs * ts).toSp() }, color = c, fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal)
         val l = tm.measure(t, st)
         ds.drawText(l, topLeft = if (center) Offset(x * s - l.size.width / 2f, y * s - l.size.height / 2f) else Offset(x * s, y * s - l.size.height / 2f))
     }
@@ -145,7 +147,8 @@ class Sk(val ds: DrawScope, val s: Float, val tm: TextMeasurer, val cc: CalcColo
     }
     fun badge(c: Comp) {
         val on = c.n == sel
-        circle(c.x, c.y, if (on) 15f else 12.5f, if (on) accent else cc.surface, accent, 2.5f)
+        val k = ts / s
+        circle(c.x, c.y, (if (on) 15f else 12.5f) * k, if (on) accent else cc.surface, accent, 2.5f)
         text(c.x, c.y, c.n.toString(), 11.5f, if (on) Color.White else accent, true)
     }
 }
@@ -317,19 +320,19 @@ private val hvacSchem = Schematic("HVAC – chilled water, fresh air, supply / r
     listOf(LegendItem(CHWS, "CHW supply"), LegendItem(CHWR, "CHW return"), LegendItem(FA, "Fresh air"), LegendItem(SA, "Supply air"), LegendItem(RA, "Return air"), LegendItem(EA, "Exhaust air")),
     listOf(
         Comp(1, "Air-cooled chiller", "Produces chilled water (≈ 6 / 12 °C). Capacity = sum of the coil loads (TR) with diversity.", 150f, 40f, 0),
-        Comp(2, "Chilled water pipes & pump", "Carry chilled water to the AHUs / FCUs; flow = kW / (4.19 × ΔT).", 255f, 245f, 0),
+        Comp(2, "Chilled water pipes & pump", "Carry chilled water to the AHUs / FCUs; flow = kW / (4.19 × ΔT).", 250f, 148f, 0),
         Comp(3, "Fresh air handling unit (FAHU)", "Treats outdoor air (often with heat recovery) and supplies the ventilation rate (ASHRAE 62.1).", 410f, 45f, 1),
         Comp(4, "AHU / fan coil unit", "Cools the room air plus fresh air. Coil load = room sensible + latent + fresh-air load; airflow from the sensible load.", 330f, 150f, 0),
         Comp(5, "Supply duct main", "Sized by equal friction; the fan's ESP is the critical path loss plus terminals.", 520f, 152f, 2),
-        Comp(6, "Branch duct & volume damper", "Branches to each diffuser with a VCD for balancing.", 600f, 205f, 2),
+        Comp(6, "Branch duct & volume damper", "Branches to each diffuser with a VCD for balancing.", 592f, 205f, 2),
         Comp(7, "Supply diffuser", "Delivers the room's share of supply air at low noise.", 440f, 272f, 2),
-        Comp(8, "Return grille & return duct", "Brings room air back to the AHU (ducted or ceiling plenum).", 690f, 272f, 2),
+        Comp(8, "Return grille & return duct", "Brings room air back to the AHU (ducted or ceiling plenum).", 760f, 274f, 2),
         Comp(9, "Toilet exhaust & exhaust fan", "Toilets / kitchens kept negative; rate per WC or per m² (ASHRAE 62.1 Table 6-4).", 870f, 60f, 1),
         Comp(10, "Conditioned room", "Room-by-room cooling load: walls, glass, roof, people, lights, equipment.", 360f, 420f, 0)
     )) {
     // roof & floor
     line(60f, 130f, 960f, 130f, cc.muted, 6f); line(60f, 250f, 960f, 250f, cc.line, 3f); line(60f, 560f, 960f, 560f, cc.muted, 6f)
-    line(60f, 130f, 60f, 560f, cc.line, 3f); line(960f, 130f, 960f, 560f, cc.line, 3f); line(780f, 250f, 780f, 560f, cc.line, 3f)
+    line(60f, 130f, 60f, 560f, cc.line, 3f); line(960f, 130f, 960f, 560f, cc.line, 3f); line(800f, 250f, 800f, 560f, cc.line, 3f)
     text(70f, 238f, "Ceiling void", 10f, cc.muted, center = false); text(420f, 520f, "Office", 13f, cc.muted, true); text(870f, 520f, "Toilet", 13f, cc.muted, true)
     // chiller on the roof
     rect(90f, 60f, 130f, 62f, cc.surface2, cc.muted, 2.5f); fan(125f, 82f, 13f, cc.muted); fan(185f, 82f, 13f, cc.muted); text(155f, 112f, "Chiller", 10f, cc.ink, true)
@@ -342,12 +345,11 @@ private val hvacSchem = Schematic("HVAC – chilled water, fresh air, supply / r
     rect(360f, 62f, 110f, 56f, cc.surface2, FA, 2.5f); text(415f, 90f, "FAHU", 11f, cc.ink, true)
     poly(500f, 90f, 470f, 90f, c = FA, w = 5f); arrow(484f, 90f, 'l', FA); text(530f, 90f, "Outdoor air", 9f, FA, center = false)
     poly(400f, 118f, 400f, 140f, 340f, 140f, 340f, 148f, c = FA, w = 5f)
-    // supply main + branches + diffusers
-    poly(375f, 165f, 740f, 165f, c = SA, w = 9f); arrow(520f, 165f, 'r', SA, 8f)
-    listOf(440f, 560f, 680f).forEach { dx -> if (dx != 680f) { line(dx, 165f, dx, 248f, SA, 5f); valve(dx, 210f, SA, true, 7f); diffuser(dx, 250f, SA) } }
-    poly(740f, 165f, 740f, 220f, 600f, 220f, 600f, 248f, c = SA, w = 5f); diffuser(600f, 250f, SA)
-    // return grille + return duct
-    rect(672f, 250f, 36f, 7f, RA, null, r = 1f); poly(690f, 250f, 690f, 228f, 375f, 228f, 375f, 200f, c = RA, w = 6f); arrow(520f, 228f, 'l', RA, 8f)
+    // supply main + branches with volume dampers + diffusers
+    poly(375f, 165f, 700f, 165f, c = SA, w = 9f); arrow(520f, 165f, 'r', SA, 8f)
+    listOf(440f, 560f, 680f).forEach { dx -> line(dx, 165f, dx, 248f, SA, 5f); valve(dx, 210f, SA, true, 7f); diffuser(dx, 250f, SA) }
+    // return grille + return duct back to the AHU
+    rect(742f, 250f, 36f, 7f, RA, null, r = 1f); poly(760f, 250f, 760f, 232f, 375f, 232f, 375f, 200f, c = RA, w = 6f); arrow(610f, 232f, 'l', RA, 8f)
     // toilet exhaust → fan on roof
     rect(852f, 250f, 36f, 7f, EA, null, r = 1f); poly(870f, 250f, 870f, 105f, c = EA, w = 6f); fan(870f, 95f, 16f, EA); arrow(870f, 60f, 'u', EA)
     // thermostat + people
@@ -365,96 +367,105 @@ fun OverviewContent(b: Branch, avail: Dp, openTool: (Int) -> Unit) {
     var sel by remember(b.id) { mutableIntStateOf(1) }
     val tm = rememberTextMeasurer()
     val inner = avail - 32.dp
-    val canvasW = maxOf(inner, 720.dp)          // phones scroll sideways, tablets fit
+    val wide = avail >= 1000.dp
+    val mapW = if (wide) (inner - 14.dp) * 0.64f else inner      // panel width
+    val canvasW = maxOf(mapW - 32.dp, 640.dp)                     // phones scroll sideways
     val canvasH = canvasW * (sch.h / sch.w)
-    androidx.compose.foundation.lazy.LazyColumn(
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+    val listW = if (wide) inner - mapW - 14.dp else inner
+    val drawing: @Composable () -> Unit = {
+        Panel(sch.title) {
+            Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+                Canvas(
+                    Modifier.width(canvasW).height(canvasH).pointerInput(b.id, canvasW) {
+                        detectTapGestures { p ->
+                            val s = size.width / sch.w
+                            val hit = sch.comps.minByOrNull { c -> val dx = c.x * s - p.x; val dy = c.y * s - p.y; dx * dx + dy * dy }
+                            if (hit != null) {
+                                val dx = hit.x * s - p.x; val dy = hit.y * s - p.y
+                                val r = maxOf(40 * s, 28.dp.toPx())
+                                if (dx * dx + dy * dy < r * r) sel = hit.n
+                            }
+                        }
+                    }
+                ) {
+                    val k = Sk(this, size.width / sch.w, tm, cc, accent, sel)
+                    sch.draw(k)
+                    sch.comps.forEach { k.badge(it) }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                sch.legend.forEach { l ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Canvas(Modifier.width(26.dp).height(8.dp)) {
+                            drawLine(l.color, Offset(0f, size.height / 2), Offset(size.width, size.height / 2), strokeWidth = 4.dp.toPx(),
+                                pathEffect = if (l.dashed) PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx())) else null)
+                        }
+                        Spacer(Modifier.width(6.dp)); Text(l.label, style = T.small, color = cc.ink)
+                    }
+                }
+            }
+        }
+    }
+    val detail: @Composable () -> Unit = {
+        val c = sch.comps.firstOrNull { it.n == sel }
+        if (c != null) Surface(shape = RoundedCornerShape(16.dp), color = cc.surface, modifier = Modifier.fillMaxWidth()) {
+            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
+                Box(Modifier.size(36.dp).clip(CircleShape).background(accent), contentAlignment = Alignment.Center) { Text(c.n.toString(), color = Color.White, fontWeight = FontWeight.Bold) }
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(c.name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = cc.ink)
+                    Spacer(Modifier.height(4.dp))
+                    Text(c.desc, color = cc.ink)
+                    c.tool?.let { t -> Spacer(Modifier.height(10.dp)); OutlinedButton(onClick = { openTool(t) }) { Text("Open “${b.tools[t].title}” →") } }
+                }
+            }
+        }
+    }
+    val list: @Composable () -> Unit = {
+        Panel("Components") {
+            val two = !wide && avail >= 720.dp
+            val rowW = if (two) (listW - 32.dp - 10.dp) / 2 else listW - 32.dp
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                sch.comps.forEach { c ->
+                    val on = c.n == sel
+                    Row(
+                        Modifier.width(rowW).clip(RoundedCornerShape(12.dp))
+                            .background(if (on) accent.copy(alpha = .12f) else cc.surface2)
+                            .border(1.dp, if (on) accent else cc.line, RoundedCornerShape(12.dp))
+                            .clickable { sel = c.n }.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(Modifier.size(28.dp).clip(CircleShape).background(if (on) accent else cc.surface).border(2.dp, accent, CircleShape), contentAlignment = Alignment.Center) {
+                            Text(c.n.toString(), color = if (on) Color.White else accent, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(c.name, fontWeight = FontWeight.SemiBold, color = cc.ink)
+                            c.tool?.let { SmallLabel("Sized in: ${b.tools[it].title}") }
+                        }
+                    }
+                }
+            }
+        }
+    }
         item(key = "title") {
             Column(Modifier.widthIn(max = 1240.dp).fillMaxWidth()) {
                 Text("${b.title} – system overview", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = cc.ink)
                 Text("Tap a number on the drawing or in the list. Each component links to the calculation that sizes it.", color = cc.muted)
             }
         }
-        item(key = "map") {
-            Panel(sch.title, modifier = Modifier.widthIn(max = 1240.dp)) {
-                Box(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                    Canvas(
-                        Modifier.width(canvasW).height(canvasH).pointerInput(b.id, canvasW) {
-                            detectTapGestures { p ->
-                                val s = size.width / sch.w
-                                val hit = sch.comps.minByOrNull { c -> val dx = c.x * s - p.x; val dy = c.y * s - p.y; dx * dx + dy * dy }
-                                if (hit != null) {
-                                    val dx = hit.x * s - p.x; val dy = hit.y * s - p.y
-                                    if (dx * dx + dy * dy < (40 * s) * (40 * s)) sel = hit.n
-                                }
-                            }
-                        }
-                    ) {
-                        val k = Sk(this, size.width / sch.w, tm, cc, accent, sel)
-                        sch.draw(k)
-                        sch.comps.forEach { k.badge(it) }
-                    }
-                }
-                Spacer(Modifier.height(10.dp))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    sch.legend.forEach { l ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Canvas(Modifier.width(26.dp).height(8.dp)) {
-                                drawLine(l.color, Offset(0f, size.height / 2), Offset(size.width, size.height / 2), strokeWidth = 4.dp.toPx(),
-                                    pathEffect = if (l.dashed) PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx())) else null)
-                            }
-                            Spacer(Modifier.width(6.dp)); Text(l.label, style = T.small, color = cc.ink)
-                        }
-                    }
+        if (wide) {
+            item(key = "wide") {
+                Row(Modifier.widthIn(max = 1240.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.Top) {
+                    Box(Modifier.width(mapW)) { drawing() }
+                    Column(Modifier.width(listW), verticalArrangement = Arrangement.spacedBy(14.dp)) { detail(); list() }
                 }
             }
-        }
-        item(key = "selected") {
-            val c = sch.comps.firstOrNull { it.n == sel }
-            if (c != null) Surface(shape = RoundedCornerShape(16.dp), color = cc.surface, modifier = Modifier.widthIn(max = 1240.dp).fillMaxWidth()) {
-                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
-                    Box(Modifier.size(36.dp).clip(CircleShape).background(accent), contentAlignment = Alignment.Center) { Text(c.n.toString(), color = Color.White, fontWeight = FontWeight.Bold) }
-                    Spacer(Modifier.width(14.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(c.name, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = cc.ink)
-                        Spacer(Modifier.height(4.dp))
-                        Text(c.desc, color = cc.ink)
-                        c.tool?.let { t ->
-                            Spacer(Modifier.height(10.dp))
-                            OutlinedButton(onClick = { openTool(t) }) { Text("Open “${b.tools[t].title}” →") }
-                        }
-                    }
-                }
-            }
-        }
-        item(key = "list") {
-            Panel("Components", modifier = Modifier.widthIn(max = 1240.dp)) {
-                val two = avail >= 720.dp
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    sch.comps.forEach { c ->
-                        val on = c.n == sel
-                        Row(
-                            Modifier.width(if (two) (inner - 32.dp - 10.dp) / 2 else inner - 32.dp).clip(RoundedCornerShape(12.dp))
-                                .background(if (on) accent.copy(alpha = .12f) else cc.surface2)
-                                .border(1.dp, if (on) accent else cc.line, RoundedCornerShape(12.dp))
-                                .clickable { sel = c.n }.padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(Modifier.size(28.dp).clip(CircleShape).background(if (on) accent else cc.surface).border(2.dp, accent, CircleShape), contentAlignment = Alignment.Center) {
-                                Text(c.n.toString(), color = if (on) Color.White else accent, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            }
-                            Spacer(Modifier.width(10.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(c.name, fontWeight = FontWeight.SemiBold, color = cc.ink)
-                                c.tool?.let { SmallLabel("Sized in: ${b.tools[it].title}") }
-                            }
-                        }
-                    }
-                }
-            }
+        } else {
+            item(key = "map") { Box(Modifier.widthIn(max = 1240.dp)) { drawing() } }
+            item(key = "selected") { Box(Modifier.widthIn(max = 1240.dp)) { detail() } }
+            item(key = "list") { Box(Modifier.widthIn(max = 1240.dp)) { list() } }
         }
     }
 }
