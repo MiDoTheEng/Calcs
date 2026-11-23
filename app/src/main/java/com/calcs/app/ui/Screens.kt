@@ -349,7 +349,7 @@ fun BranchScreen(app: AppState, b: Branch) {
             }
         }
     ) { pad ->
-        Box(Modifier.padding(top = pad.calculateTopPadding()).fillMaxSize()) {
+        Box(Modifier.padding(top = pad.calculateTopPadding(), bottom = pad.calculateBottomPadding()).fillMaxSize()) {
             if (tool == null) {
                 BoxWithConstraints(Modifier.fillMaxSize()) { OverviewContent(b, minOf(maxWidth, 1240.dp)) { t -> tab = t + 1 } }
             } else key(tool.id) { ToolContent(app, tool) }
@@ -510,7 +510,7 @@ fun UnitsScreen(app: AppState) {
         val v = app.version
         LazyVerticalGrid(
             columns = GridCells.Adaptive(340.dp),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = pad.calculateTopPadding() + 16.dp, bottom = 32.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = pad.calculateTopPadding() + 16.dp, bottom = pad.calculateBottomPadding() + 32.dp),
             horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Eng.UNITS.forEach { (group, units) ->
