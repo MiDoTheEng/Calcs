@@ -52,6 +52,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -321,11 +322,15 @@ private fun BranchCard(code: String, title: String, desc: String, tools: List<St
 fun BranchScreen(app: AppState, b: Branch) {
     val cc = LocalCalc.current
     BackHandler { app.saveNow(); app.screen = Screen.Home }
+    val kp = remember { Keypad() }
+    BackHandler(enabled = kp.active != null) { kp.close() }
     // tab 0 = system overview (schematic); tab i = calculation i-1. Every system opens on its overview.
     var tab by remember { mutableStateOf(0) }
     val tool: ToolDef? = if (tab == 0) null else b.tools[tab - 1]
+    CompositionLocalProvider(LocalKeypad provides kp) {
     Scaffold(
         containerColor = cc.bg,
+        bottomBar = { KeypadBar(kp) },
         topBar = {
             Column(Modifier.background(cc.surface)) {
                 Box(Modifier.fillMaxWidth().height(4.dp).background(MaterialTheme.colorScheme.primary))
@@ -337,7 +342,7 @@ fun BranchScreen(app: AppState, b: Branch) {
                 )
                 ScrollableTabRow(selectedTabIndex = tab, edgePadding = 12.dp, containerColor = cc.surface) {
                     (listOf("Overview") + b.tools.map { it.title }).forEachIndexed { i, title ->
-                        Tab(selected = i == tab, onClick = { tab = i },
+                        Tab(selected = i == tab, onClick = { kp.close(); tab = i },
                             text = { Text(title, fontWeight = if (i == tab) FontWeight.Bold else FontWeight.Normal) })
                     }
                 }
@@ -349,6 +354,7 @@ fun BranchScreen(app: AppState, b: Branch) {
                 BoxWithConstraints(Modifier.fillMaxSize()) { OverviewContent(b, minOf(maxWidth, 1240.dp)) { t -> tab = t + 1 } }
             } else key(tool.id) { ToolContent(app, tool) }
         }
+    }
     }
 }
 
@@ -487,8 +493,12 @@ private fun SectionView(app: AppState, b: Section, s: com.calcs.app.core.ToolSta
 fun UnitsScreen(app: AppState) {
     val cc = LocalCalc.current
     BackHandler { app.saveNow(); app.screen = Screen.Home }
+    val kp = remember { Keypad() }
+    BackHandler(enabled = kp.active != null) { kp.close() }
+    CompositionLocalProvider(LocalKeypad provides kp) {
     Scaffold(
         containerColor = cc.bg,
+        bottomBar = { KeypadBar(kp) },
         topBar = {
             TopAppBar(
                 navigationIcon = { IconButton(onClick = { app.saveNow(); app.screen = Screen.Home }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
@@ -508,7 +518,7 @@ fun UnitsScreen(app: AppState) {
                     val cur = app.units[group] ?: ("1" to units[0].first)
                     Panel(group) {
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            InputBox(cur.first, true, Modifier.weight(1f)) { t -> app.units[group] = t to (app.units[group]?.second ?: units[0].first); app.touch() }
+                            NumBox("units:$group", group, cur.first, Modifier.weight(1f)) { t -> app.units[group] = t to (app.units[group]?.second ?: units[0].first); app.touch() }
                             SelectBox(cur.second, units.map { com.calcs.app.core.Opt(it.first, it.first) }, Modifier.weight(1f)) { u -> app.units[group] = (app.units[group]?.first ?: "1") to u; app.touch() }
                         }
                         Spacer(Modifier.height(10.dp))
@@ -525,6 +535,7 @@ fun UnitsScreen(app: AppState) {
             }
         }
     }
+}
 }
 
 @Composable

@@ -70,6 +70,7 @@ fun InputBox(initial: String, numeric: Boolean, modifier: Modifier = Modifier, o
     val cc = LocalCalc.current
     var tf by remember { mutableStateOf(TextFieldValue(initial)) }
     val source = remember { MutableInteractionSource() }
+    val kp = LocalKeypad.current
     val focused by source.collectIsFocusedAsState()
     BasicTextField(
         value = tf,
@@ -84,7 +85,7 @@ fun InputBox(initial: String, numeric: Boolean, modifier: Modifier = Modifier, o
             .clip(RoundedCornerShape(10.dp))
             .background(cc.inBg)
             .border(if (focused) 2.dp else 1.dp, if (focused) MaterialTheme.colorScheme.primary else cc.inLine, RoundedCornerShape(10.dp))
-            .onFocusChanged { if (it.isFocused && numeric) tf = tf.copy(selection = TextRange(0, tf.text.length)) },
+            .onFocusChanged { if (it.isFocused) { kp?.close(); if (numeric) tf = tf.copy(selection = TextRange(0, tf.text.length)) } },
         decorationBox = { inner ->
             Box(Modifier.padding(horizontal = 12.dp), contentAlignment = if (numeric) Alignment.CenterEnd else Alignment.CenterStart) { inner() }
         }
@@ -121,10 +122,9 @@ fun BoundInput(f: Field, map: MutableMap<String, String>, app: AppState, modifie
             map[f.k] = v
             if (f.onChange != null) { f.onChange.invoke(com.calcs.app.core.ToolState(map)); app.reload() } else app.touch()
         }
-        else -> InputBox(map[f.k] ?: "", f.kind == Kind.NUM, modifier) { v ->
-            map[f.k] = v
-            if (f.structural) onStructural() else app.touch()
-        }
+        Kind.NUM -> NumBox("${System.identityHashCode(map)}:${f.k}", if (f.unit.isNotEmpty()) "${f.label} (${f.unit})" else f.label, map[f.k] ?: "", modifier,
+            commit = { if (f.structural) onStructural() }) { v -> map[f.k] = v; app.touch() }
+        Kind.TEXT -> InputBox(map[f.k] ?: "", false, modifier) { v -> map[f.k] = v; app.touch() }
     }
 }
 
