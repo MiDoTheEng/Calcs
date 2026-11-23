@@ -210,7 +210,7 @@ fun Tiles(rows: List<RRow>, avail: Dp) {
                     Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                         Text(r.label, style = T.small, color = cc.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Row(verticalAlignment = Alignment.Bottom) {
-                            Text(fmt(r.value, r.dec), fontSize = if (big) 23.sp else 19.sp, fontWeight = FontWeight.ExtraBold, style = T.num, color = statusColor(r.value, cc.ink),
+                            Text(fmt(r.value, r.dec), fontSize = if (r.value is String && (r.value as String).length > 9) (if (big) 17.sp else 15.sp) else if (big) 23.sp else 19.sp, fontWeight = FontWeight.ExtraBold, style = T.num, color = statusColor(r.value, cc.ink),
                                 maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                             if (r.unit.isNotEmpty()) Text(" " + r.unit, style = T.small, color = cc.muted, modifier = Modifier.padding(bottom = 3.dp), maxLines = 1)
                         }

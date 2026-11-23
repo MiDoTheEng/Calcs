@@ -104,7 +104,7 @@ fun NumBox(id: String, label: String, value: String, modifier: Modifier = Modifi
     val target = remember(id) { NumTarget(id, label, { text }, { v -> text = v; onChange(v) }, commit) }
     val active = kp.active?.id == id
     val bring = remember { BringIntoViewRequester() }
-    LaunchedEffect(active) { if (active) bring.bringIntoView() }
+    LaunchedEffect(active) { if (active) { kotlinx.coroutines.delay(180); bring.bringIntoView() } }  // after the pad has appeared
     DisposableEffect(id) { onDispose { kp.unregister(id) } }
     Box(
         modifier
