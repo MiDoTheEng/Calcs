@@ -102,7 +102,8 @@ class Section(
     val title: String,
     val fields: List<Field>,
     val results: ((ToolState, Res) -> List<RRow>)? = null,
-    val action: Action? = null
+    val action: Action? = null,
+    val diagram: String? = null               // id of the input diagram drawn above the fields
 ) : Block()
 
 class Grid(
@@ -120,7 +121,9 @@ class Grid(
     val totals: ((Res) -> List<Pair<String, Any?>>)? = null,
     val results: ((ToolState, Res) -> List<RRow>)? = null,
     val skipEmpty: Boolean = false,
-    val minRows: Int = 1
+    val minRows: Int = 1,
+    val icon: ((Int) -> String)? = null,      // icon per row (fixture lists)
+    val picker: String? = null                 // column edited by the visual picker (− / +)
 ) : Block()
 
 class Note(val text: String) : Block()
@@ -173,5 +176,26 @@ fun inch(v: Any?): Any? {
     return when (v) {
         1.25 -> "1¼\""; 1.5 -> "1½\""; 2.5 -> "2½\""
         else -> toText(v) + "\""
+    }
+}
+
+/** Icon key for a fixture name (used by the visual pickers). */
+fun fixtureIcon(name: String): String {
+    val n = name.lowercase()
+    return when {
+        n.startsWith("bathroom group") -> "bathgroup"
+        n.contains("water closet") -> "wc"
+        n.contains("urinal") -> "urinal"
+        n.contains("lavatory") -> "lav"
+        n.contains("bathtub") -> "bath"
+        n.contains("shower") -> "shower"
+        n.contains("bidet") -> "bidet"
+        n.contains("kitchen sink") || n.contains("pantry") || n.contains("combination") -> "sink"
+        n.contains("service sink") || n.contains("laundry") -> "service"
+        n.contains("dishwash") -> "dishwasher"
+        n.contains("washing machine") || n.contains("clothes washer") -> "washer"
+        n.contains("drinking") -> "fountain"
+        n.contains("floor drain") -> "floordrain"
+        else -> "sink"
     }
 }

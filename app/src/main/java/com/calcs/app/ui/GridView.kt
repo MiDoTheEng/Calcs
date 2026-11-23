@@ -123,7 +123,11 @@ fun GridRow(b: Grid, s: ToolState, r: Res, app: AppState, lay: GridLayout, i: In
                 b.rowLabel?.let { Text(it(i), fontWeight = FontWeight.Bold, color = cc.ink, modifier = Modifier.width(widths[j++] * sc).padding(horizontal = 8.dp)) }
                 b.fixed?.get(i)?.forEachIndexed { k, v ->
                     val c = b.fixedCols[k]
-                    Text(fmt(v, c.dec), color = if (k == 0) cc.ink else cc.muted, fontSize = 14.sp, fontWeight = if (k == 0 && rowUsed(b, row)) FontWeight.Bold else FontWeight.Normal,
+                    if (k == 0 && b.icon != null) Row(Modifier.width(widths[j++] * sc).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        FixtureIcon(b.icon.invoke(i), 26.dp, if (rowUsed(b, row)) MaterialTheme.colorScheme.primary else cc.muted)
+                        Spacer(Modifier.width(8.dp))
+                        Text(fmt(v, c.dec), color = cc.ink, fontSize = 14.sp, fontWeight = if (rowUsed(b, row)) FontWeight.Bold else FontWeight.Normal)
+                    } else Text(fmt(v, c.dec), color = if (k == 0) cc.ink else cc.muted, fontSize = 14.sp, fontWeight = if (k == 0 && rowUsed(b, row)) FontWeight.Bold else FontWeight.Normal,
                         textAlign = if (v is Number) TextAlign.End else TextAlign.Start, style = T.num, modifier = Modifier.width(widths[j++] * sc).padding(horizontal = 8.dp))
                 }
                 b.cols.forEach { f -> BoundInput(f, row, app, Modifier.width(widths[j++] * sc).padding(horizontal = 4.dp), onStructural = { app.reload() }) }
@@ -140,6 +144,7 @@ fun GridRow(b: Grid, s: ToolState, r: Res, app: AppState, lay: GridLayout, i: In
         Surface(shape = RoundedCornerShape(14.dp), color = cc.surface2, border = androidx.compose.foundation.BorderStroke(1.dp, cc.line), modifier = Modifier.padding(bottom = 10.dp)) {
             Column(Modifier.fillMaxWidth().padding(12.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    b.icon?.let { FixtureIcon(it(i), 34.dp, if (rowUsed(b, row)) MaterialTheme.colorScheme.primary else cc.muted); Spacer(Modifier.width(10.dp)) }
                     Column(Modifier.weight(1f)) {
                         val title = when {
                             b.rowLabel != null -> b.rowLabel.invoke(i)

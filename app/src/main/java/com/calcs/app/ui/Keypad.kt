@@ -95,13 +95,12 @@ val LocalKeypad = staticCompositionLocalOf<Keypad?> { null }
 /** Number box driven by the keypad. Falls back to the normal text field where no keypad is provided. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun NumBox(id: String, label: String, value: String, modifier: Modifier = Modifier, commit: () -> Unit = {}, onChange: (String) -> Unit) {
+fun NumBox(id: String, label: String, value: String, modifier: Modifier = Modifier, commit: () -> Unit = {}, get: (() -> String)? = null, onChange: (String) -> Unit) {
     val kp = LocalKeypad.current
     if (kp == null) { InputBox(value, true, modifier, onChange); return }
     val cc = LocalCalc.current
-    var text by remember(id) { mutableStateOf(value) }
-    if (kp.active?.id != id && text != value) text = value
-    val target = remember(id) { NumTarget(id, label, { text }, { v -> text = v; onChange(v) }, commit) }
+    val text = value          // the stored value is the truth; the pad writes it through onChange
+    val target = remember(id) { NumTarget(id, label, get ?: { value }, onChange, commit) }
     val active = kp.active?.id == id
     val bring = remember { BringIntoViewRequester() }
     LaunchedEffect(active) { if (active) { kotlinx.coroutines.delay(180); bring.bringIntoView() } }  // after the pad has appeared

@@ -114,6 +114,14 @@ fun SelectBox(value: String, options: List<Opt>, modifier: Modifier = Modifier, 
     }
 }
 
+/** Same id for a field everywhere (number box, diagram label) so they light up together. */
+fun fieldId(map: MutableMap<String, String>, k: String) = "${System.identityHashCode(map)}:$k"
+
+/** Keypad target for a field, used by diagram labels. */
+fun fieldTarget(f: Field, map: MutableMap<String, String>, app: AppState, onStructural: () -> Unit) =
+    NumTarget(fieldId(map, f.k), if (f.unit.isNotEmpty()) "${f.label} (${f.unit})" else f.label, { map[f.k] ?: "" },
+        { v -> map[f.k] = v; app.touch() }, { if (f.structural) onStructural() })
+
 /** An input bound to a key of a map. */
 @Composable
 fun BoundInput(f: Field, map: MutableMap<String, String>, app: AppState, modifier: Modifier = Modifier, onStructural: () -> Unit = {}) {
@@ -122,8 +130,8 @@ fun BoundInput(f: Field, map: MutableMap<String, String>, app: AppState, modifie
             map[f.k] = v
             if (f.onChange != null) { f.onChange.invoke(com.calcs.app.core.ToolState(map)); app.reload() } else app.touch()
         }
-        Kind.NUM -> NumBox("${System.identityHashCode(map)}:${f.k}", if (f.unit.isNotEmpty()) "${f.label} (${f.unit})" else f.label, map[f.k] ?: "", modifier,
-            commit = { if (f.structural) onStructural() }) { v -> map[f.k] = v; app.touch() }
+        Kind.NUM -> NumBox(fieldId(map, f.k), if (f.unit.isNotEmpty()) "${f.label} (${f.unit})" else f.label, map[f.k] ?: "", modifier,
+            commit = { if (f.structural) onStructural() }, get = { map[f.k] ?: "" }) { v -> map[f.k] = v; app.touch() }
         Kind.TEXT -> InputBox(map[f.k] ?: "", false, modifier) { v -> map[f.k] = v; app.touch() }
     }
 }

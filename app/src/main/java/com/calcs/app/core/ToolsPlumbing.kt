@@ -31,7 +31,7 @@ object PlumbingTools {
                 Field("persons", "Persons per unit", "no."),
                 Field("lpd", "Daily consumption per person", "L/p/day", "Authority / project requirement"),
                 Field("days", "Storage duration", "days")
-            ), results = { _, r -> listOf(RRow("Total persons", r["persons"], "no.", 0), RRow("Daily demand", r["daily"], "m³/day", 2), RRow("Required storage volume", r["tank"], "m³", 2, true)) }),
+            ), results = { _, r -> listOf(RRow("Total persons", r["persons"], "no.", 0), RRow("Daily demand", r["daily"], "m³/day", 2), RRow("Required storage volume", r["tank"], "m³", 2, true)) }, diagram = "ws-tank"),
             Grid("2 · Fixtures & WSFU (IPC E103.3)", "fix",
                 help = "Quantity per unit × number of units. Extra = fixtures outside the units (lobby, gym…). Bathroom group = WC + lavatory + bath/shower: use it OR the single fixtures, never both.",
                 fixed = Eng.WSFU.map { listOf(it.fixture, it.occ, it.control, it.total) },
@@ -41,6 +41,7 @@ object PlumbingTools {
                     Out("Total qty", 0) { r, i -> r.row(i, "qty") }, Out("Total WSFU", 1, key = true) { r, i -> r.row(i, "wsfu") },
                     Out("Cold", 1) { r, i -> r.row(i, "cold") }, Out("Hot", 1) { r, i -> r.row(i, "hot") }),
                 totals = { r -> listOf("Total qty" to r["totQty"], "Total WSFU" to r["totWsfu"], "Cold" to r["totCold"], "Hot" to r["totHot"]) },
+                icon = { i -> fixtureIcon(Eng.WSFU[i].fixture) }, picker = "unit",
                 results = { _, r -> listOf(RRow("Total WSFU (building main)", r["totWsfu"], "WSFU", 1), RRow("Hunter curve used (auto)", r["curve"]),
                     RRow("Peak flow (Hunter, interpolated)", r["gpm"], "gpm", 2), RRow("Peak flow Q", r["ls"], "L/s", 3, true)) },
                 skipEmpty = true),
@@ -49,19 +50,19 @@ object PlumbingTools {
                 Field("id", "Selected pipe INTERNAL diameter", "mm", "Real ID from the catalogue (≥ required)"),
                 Field("vMax", "Maximum allowable velocity", "m/s"),
                 Field("C", "Hazen-Williams C", "-", "150 PPR / PVC · 130–140 copper")
-            ), results = { _, r -> listOf(RRow("Required internal diameter", r["reqID"], "mm", 1), RRow("Actual velocity", r["v"], "m/s", 2), RRow("Velocity check", r["vCheck"], key = true)) }),
+            ), results = { _, r -> listOf(RRow("Required internal diameter", r["reqID"], "mm", 1), RRow("Actual velocity", r["v"], "m/s", 2), RRow("Velocity check", r["vCheck"], key = true)) }, diagram = "ws-pipe"),
             Section("4 · Friction loss on the critical path", listOf(
                 Field("len", "Straight length, pump → most remote fixture", "m"),
                 Field("fpct", "Fittings allowance", "% of L", "Rule of thumb 20–50 %"),
                 Field("feq", "OR fittings equivalent length (catalogue)", "m", "If filled, overrides the %")
-            ), results = { _, r -> listOf(RRow("Equivalent length Le", r["Le"], "m", 1), RRow("Friction per m (at peak flow)", r["j"], "m/m", 4), RRow("Total friction loss", r["hf"], "m", 2, true)) }),
+            ), results = { _, r -> listOf(RRow("Equivalent length Le", r["Le"], "m", 1), RRow("Friction per m (at peak flow)", r["j"], "m/m", 4), RRow("Total friction loss", r["hf"], "m", 2, true)) }, diagram = "ws-friction"),
             Section("5 · Pump selection", listOf(
                 Field("stat", "Static height, pump → highest fixture", "m"),
                 Field("resBar", "Residual pressure at remote fixture", "bar"),
                 Field("safety", "Safety margin", "%"),
                 Field("eff", "Pump efficiency (assumed)", "%")
             ), results = { _, r -> listOf(RRow("Residual pressure as head", r["resM"], "m", 2), RRow("Friction loss (section 4)", r["hf"], "m", 2), RRow("Subtotal head", r["sub"], "m", 2),
-                RRow("TOTAL PUMP HEAD", r["head"], "m", 2, true), RRow("Pump flow", r["m3h"], "m³/h", 2, true), RRow("Hydraulic power", r["hyd"], "kW", 2), RRow("Pump shaft power", r["shaft"], "kW", 2, true)) }),
+                RRow("TOTAL PUMP HEAD", r["head"], "m", 2, true), RRow("Pump flow", r["m3h"], "m³/h", 2, true), RRow("Hydraulic power", r["hyd"], "kW", 2), RRow("Pump shaft power", r["shaft"], "kW", 2, true)) }, diagram = "ws-pump"),
             Note("If any flush-valve WC or urinal is present, the flush-valve Hunter curve is used for the whole building. Low floors: check static pressure; PRVs or zoning may be needed. WSFU and Hunter values per IPC Appendix E – verify against your code edition and authority.")
         )
     )
@@ -109,7 +110,8 @@ object PlumbingTools {
                 fixedCols = listOf(FixedCol("Fixture"), FixedCol("Demand (US gal/h)", 0)),
                 cols = listOf(Field("q", "Quantity")),
                 outs = listOf(Out("L/h each", 1) { r, i -> r.row(i, "lh") }, Out("Total (L/h)", 1, key = true) { r, i -> r.row(i, "total") }),
-                totals = { r -> listOf("Total (L/h)" to r["possible"]) }),
+                totals = { r -> listOf("Total (L/h)" to r["possible"]) },
+                icon = { i -> fixtureIcon(Eng.HOT_FIXTURES[i].first) }, picker = "q"),
             Section("2 · Demand & storage", listOf(
                 Field("df", "Demand factor", "-", "Apartment house 0.30"),
                 Field("sf", "Storage capacity factor", "-", "Apartment house 1.25")
@@ -119,7 +121,7 @@ object PlumbingTools {
                 Field("ts", "Storage temperature", "°C", "≥ 60 °C against Legionella"),
                 Field("vol", "Selected heater volume (blank = required)", "L"),
                 Field("rec", "Recovery time (heat a full tank)", "h")
-            ), results = { _, r -> listOf(RRow("ΔT", r["dT"], "°C", 1), RRow("Volume used", r["vol"], "L", 1), RRow("Power to heat the tank in the recovery time", r["pTank"], "kW", 2, true), RRow("Power to keep up with PMD continuously", r["pCont"], "kW", 2)) }),
+            ), results = { _, r -> listOf(RRow("ΔT", r["dT"], "°C", 1), RRow("Volume used", r["vol"], "L", 1), RRow("Power to heat the tank in the recovery time", r["pTank"], "kW", 2, true), RRow("Power to keep up with PMD continuously", r["pCont"], "kW", 2)) }, diagram = "ws-heater"),
             Section("4 · Quick check: daily use", listOf(
                 Field("persons", "Persons served", "no."), Field("lppd", "Hot water use per person (60 °C)", "L/p/day")
             ), results = { _, r -> listOf(RRow("Daily hot water use", r["daily"], "L/day", 0), RRow("Storage as % of daily use", r["pct"], "%", 0)) }),
@@ -142,7 +144,7 @@ object PlumbingTools {
         tiles = { _, r -> listOf(RRow("Total DFU", r["total"], "DFU", 1), RRow("Soil DFU", r["soil"], "DFU", 1), RRow("Waste DFU", r["waste"], "DFU", 1),
             RRow("Per unit soil / waste", "${fmt(r["unitSoil"], 0)} / ${fmt(r["unitWaste"], 0)}", "DFU")) },
         blocks = listOf(
-            Section("Building", listOf(Field("units", "Number of identical units (apartments)", "no."))),
+            Section("Building", listOf(Field("units", "Number of identical units (apartments)", "no.")), diagram = "dr-building"),
             Grid("Fixtures & DFU (IPC 709.1)", "fix", skipEmpty = true,
                 help = "Two-pipe system: WC & urinals → soil, the rest → waste. Bathroom groups are valid only for a combined (one-pipe) system.",
                 fixed = Eng.DFU.map { listOf(it.fixture, it.occ, it.dfu, it.system) },
@@ -150,6 +152,7 @@ object PlumbingTools {
                 cols = listOf(Field("unit", "Qty / unit"), Field("extra", "Extra qty")),
                 outs = listOf(Out("Total qty", 0) { r, i -> r.row(i, "qty") }, Out("Total DFU", 1, key = true) { r, i -> r.row(i, "dfu") }),
                 totals = { r -> listOf("Total DFU" to r["total"]) },
+                icon = { i -> fixtureIcon(Eng.DFU[i].fixture) }, picker = "unit",
                 results = { _, r -> buildList {
                     add(RRow("Total DFU (combined / building drain)", r["total"], "DFU", 1, true)); add(RRow("Soil DFU (building)", r["soil"], "DFU", 1))
                     add(RRow("Waste DFU (building)", r["waste"], "DFU", 1)); add(RRow("Soil DFU per unit", r["unitSoil"], "DFU", 1)); add(RRow("Waste DFU per unit", r["unitWaste"], "DFU", 1))
@@ -196,7 +199,7 @@ object PlumbingTools {
         blocks = listOf(
             Section("Design data", listOf(
                 Field("intensity", "Rainfall intensity i", "mm/h", "From the authority for the project location"),
-                Field("minLeader", "Minimum leader size used in practice", "in", "0 = follow the table only"))),
+                Field("minLeader", "Minimum leader size used in practice", "in", "0 = follow the table only")), diagram = "rn-design"),
             Grid("Catchment areas & leaders", "areas", titleKey = "name",
                 help = "C: roofs / concrete 0.9–1.0, paving 0.7–0.9, gravel 0.4–0.6, landscape 0.1–0.3.",
                 add = { row("name" to "Area", "area" to "", "c" to 1, "n" to 1, "selected" to "") },

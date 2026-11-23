@@ -403,6 +403,9 @@ fun ToolContent(app: AppState, t: ToolDef) {
                             Part(PartPos.TOP) { GridHeader(blk, lay, only) { onlyUsed[blk.key] = !only } }
                         }
                         val list = s.list(blk.key)
+                        if (blk.picker != null && blk.fixed != null) item(key = "g$bi-p", contentType = "grid-p") {
+                            Part(PartPos.MID) { Column(Modifier.padding(bottom = 14.dp)) { FixturePicker(blk, list, app, w) } }
+                        }
                         for (i in 0 until com.calcs.app.core.Reports.rowCount(blk, s)) {
                             if (only && blk.fixed != null && !rowUsedPublic(blk, list[i])) continue
                             item(key = "g$bi-r$i", contentType = if (lay.table) "row-t$bi" else "row-c$bi") {
@@ -457,6 +460,7 @@ fun Part(pos: PartPos, content: @Composable () -> Unit) {
 @Composable
 private fun SectionView(app: AppState, b: Section, s: com.calcs.app.core.ToolState, r: Res, wide: Boolean, narrow: Boolean) {
     Panel(b.title) {
+        b.diagram?.let { InputDiagramView(it, b.fields, s.f, app) { app.reload() } }
         val res = b.results?.let { f -> try { f(s, r) } catch (e: Exception) { emptyList() } } ?: emptyList()
         val inputs: @Composable () -> Unit = {
             Column {
@@ -518,7 +522,7 @@ fun UnitsScreen(app: AppState) {
                     val cur = app.units[group] ?: ("1" to units[0].first)
                     Panel(group) {
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            NumBox("units:$group", group, cur.first, Modifier.weight(1f)) { t -> app.units[group] = t to (app.units[group]?.second ?: units[0].first); app.touch() }
+                            NumBox("units:$group", group, cur.first, Modifier.weight(1f), get = { app.units[group]?.first ?: "1" }) { t -> app.units[group] = t to (app.units[group]?.second ?: units[0].first); app.touch() }
                             SelectBox(cur.second, units.map { com.calcs.app.core.Opt(it.first, it.first) }, Modifier.weight(1f)) { u -> app.units[group] = (app.units[group]?.first ?: "1") to u; app.touch() }
                         }
                         Spacer(Modifier.height(10.dp))

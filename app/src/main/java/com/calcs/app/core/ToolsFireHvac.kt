@@ -31,7 +31,7 @@ object FireTools {
                 Field("pMin", "Minimum operating pressure", "bar", "≈ 7 psi typical")
             ), results = { _, r -> listOf(RRow("Max coverage for this hazard", r["maxCov"], "m²", 1), RRow("Coverage check", r["covCheck"]), RRow("Minimum flow per sprinkler", r["qMin"], "L/min", 1),
                 RRow("Required pressure P = (Q/K)²", r["pReq"], "bar", 3), RRow("Design pressure at sprinkler", r["pDes"], "bar", 2, true), RRow("Flow at design pressure", r["qDes"], "L/min", 1),
-                RRow("Sprinklers operating in design area", r["nSpr"], "no.", 0)) }),
+                RRow("Sprinklers operating in design area", r["nSpr"], "no.", 0)) }, diagram = "ff-sprinkler"),
             Section("5 · UAE wet riser & governing values", listOf(
                 Field("risers", "Number of wet risers (Class III)", "no."),
                 Field("sprinklered", "Building fully sprinklered?", kind = Kind.SELECT, options = YESNO),
@@ -43,7 +43,7 @@ object FireTools {
             ), results = { _, r -> listOf(RRow("Riser demand (500 + 250 / extra riser)", r["riserGpm"], "gpm", 0), RRow("Riser head needed", r["riserHead"], "m", 1),
                 RRow("Sprinkler head needed", r["sprHead"], "m", 1), RRow("FIRE PUMP flow (largest)", r["pumpGpm"], "gpm", 0, true), RRow("FIRE PUMP flow", r["pumpLs"], "L/s", 2),
                 RRow("FIRE PUMP head (largest)", r["pumpHead"], "m", 1, true), RRow("FIRE PUMP pressure", r["pumpBar"], "bar", 2),
-                RRow("Tank duration (UAE ≥ 60 min of pump flow)", r["tankMin"], "min", 0), RRow("FIRE WATER TANK", r["tank"], "m³", 1, true)) }),
+                RRow("Tank duration (UAE ≥ 60 min of pump flow)", r["tankMin"], "min", 0), RRow("FIRE WATER TANK", r["tank"], "m³", 1, true)) }, diagram = "ff-riser"),
             Note("Hose reel: 6.5 gpm at 4.5 bar at the remotest 25 mm reel, max 12 bar, PRV above 7 bar. UAE values from a published copy of the UAE Fire & Life Safety Code Ch. 9 – verify the current edition with Civil Defence. The final design needs a full hydraulic calculation.")
         )
     )
@@ -75,7 +75,7 @@ object FireTools {
             ), results = { _, r -> listOf(RRow("Riser demand", r["riserGpm"], "gpm", 0), RRow("Riser head needed", r["riserHead"], "m", 1), RRow("FIRE PUMP rated flow", r["pumpGpm"], "gpm", 0, true),
                 RRow("Fire pump rated flow", r["pumpLs"], "L/s", 2), RRow("Fire pump rated flow", r["pumpM3h"], "m³/h", 1), RRow("FIRE PUMP rated head", r["pumpHead"], "m", 1, true),
                 RRow("Fire pump rated pressure", r["pumpBar"], "bar", 2), RRow("NFPA 20: at 150 % flow, at least", r["at150"], "m", 1), RRow("NFPA 20: shut-off head not above", r["shutoff"], "m", 1),
-                RRow("FIRE TANK = max(zones, pump × 60 min)", r["tank"], "m³", 1, true)) }),
+                RRow("FIRE TANK = max(zones, pump × 60 min)", r["tank"], "m³", 1, true)) }, diagram = "ff-riser"),
             Note("Duty point = largest flow AND largest head, even from different zones. Lower zones will see excess pressure → PRVs / zoning. The authority may require extra storage (hose reels, hydrants).")
         )
     )
@@ -95,7 +95,7 @@ object FireTools {
                 Field("n", "Number of sprinklers on the branch (1–15)", "no.", structural = true),
                 Field("dDef", "Pipe size for all segments", kind = Kind.SELECT, options = SCH),
                 Field("lenDef", "Spacing for all segments", "m")
-            ), action = Action("Apply size & spacing to all pipes") { s -> s.list("seg").forEach { it["d"] = s.s("dDef"); it["len"] = s.s("lenDef") } }),
+            ), action = Action("Apply size & spacing to all pipes") { s -> s.list("seg").forEach { it["d"] = s.s("dDef"); it["len"] = s.s("lenDef") } }, diagram = "ff-branch"),
             SketchBlock,
             Grid("Sprinklers (1 = most remote → riser)", "seg",
                 help = "Each row = a sprinkler and the pipe after it toward the riser. Elevation drop = how much LOWER the next point is (negative if higher).",
@@ -151,7 +151,7 @@ object HvacTools {
                 Field("tSupply", "Supply air temperature (off coil)", "°C", "Used for the supply airflow"),
                 Field("safety", "Safety factor", "%")
             ), results = { _, r -> listOf(RRow("Outdoor humidity ratio", r["wo"], "g/kg", 1), RRow("Indoor humidity ratio", r["wi"], "g/kg", 1),
-                RRow("ΔT outdoor – indoor", r["dT"], "K", 1), RRow("ΔW outdoor – indoor", r["dW"], "g/kg", 1), RRow("Supply ΔT (room – supply)", r["dTs"], "K", 1)) }),
+                RRow("ΔT outdoor – indoor", r["dT"], "K", 1), RRow("ΔW outdoor – indoor", r["dW"], "g/kg", 1), RRow("Supply ΔT (room – supply)", r["dTs"], "K", 1)) }, diagram = "hv-cond"),
             Section("2 · Envelope & internal gains", listOf(
                 Field("uWall", "Wall U-value", "W/m²K", "UAE green building limits ≈ 0.57 wall / 0.3 roof"),
                 Field("uRoof", "Roof U-value", "W/m²K"),
@@ -163,7 +163,7 @@ object HvacTools {
                 Field("m2pp", "Area per person when people is blank", "m²/person"),
                 Field("rp", "Fresh air per person (if room OA blank)", "L/s·person", "ASHRAE 62.1 office 2.5"),
                 Field("ra", "Fresh air per m² (if room OA blank)", "L/s·m²", "ASHRAE 62.1 office 0.3")
-            )),
+            ), diagram = "hv-env"),
             Grid("3 · Orientation data (peak, ~24° N)", "orient",
                 help = "Wall ETD = equivalent temperature difference for walls in that orientation; Horizontal ETD is used for roofs. SHGF = peak solar heat gain through clear glass.",
                 fixed = Hvac.ORIENT.map { listOf(it.first) }, fixedCols = listOf(FixedCol("Orientation")),
@@ -251,7 +251,7 @@ object HvacTools {
                 Field("vRun", "Max velocity – run-out", "m/s"),
                 Field("eps", "Duct roughness (galvanized 0.09)", "mm"),
                 Field("rho", "Air density", "kg/m³")
-            )),
+            ), diagram = "hv-duct"),
             Grid("2 · Duct sections", "seg", titleKey = "name",
                 help = "Flow in L/s (1 L/s = 2.12 CFM). ΣK = sum of fitting loss coefficients (elbow ≈ 0.2–0.3, tee branch ≈ 0.5–1). Mark the sections on the longest / worst path as critical. Depth blank = max depth above.",
                 add = { duct("Section", "Branch", "", "", "") },
@@ -269,7 +269,7 @@ object HvacTools {
                 Field("pDev", "Dampers, fire dampers, sound attenuator", "Pa"),
                 Field("safety", "Safety margin", "%")
             ), results = { _, r -> listOf(RRow("Critical path duct + fittings", r["crit"], "Pa", 0), RRow("Terminals & devices", r["extra"], "Pa", 0),
-                RRow("FAN ESP", r["esp"], "Pa", 0, true), RRow("FAN ESP", r["espIn"], "in. wg", 2, true)) }),
+                RRow("FAN ESP", r["esp"], "Pa", 0, true), RRow("FAN ESP", r["espIn"], "in. wg", 2, true)) }, diagram = "hv-esp"),
             Note("Friction: Darcy–Weisbach with Altshul–Tsal f. Rectangular equivalent: De = 1.30 (ab)^0.625 / (a+b)^0.25 (Huebscher). Fitting loss = ΣK × ρv²/2. ESP excludes the coil and filters inside the unit – check what the manufacturer's ESP includes.")
         )
     )
