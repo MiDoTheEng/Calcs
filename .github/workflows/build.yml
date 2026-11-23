@@ -38,7 +38,7 @@ jobs:
         if: always()
         run: |
           mkdir -p /tmp/shots
-          cp app/build/shots/*.png /tmp/shots/ 2>/dev/null || true
+          cp app/build/shots/*.png app/build/shots/*.pdf /tmp/shots/ 2>/dev/null || true
           grep -E "FAILED|Exception|Error|tests completed" test.log | head -80 > /tmp/shots/test-summary.txt || true
           cp -r app/build/test-results /tmp/shots/ 2>/dev/null || true
           cd /tmp/shots
