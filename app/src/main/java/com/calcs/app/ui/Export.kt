@@ -17,8 +17,6 @@ import com.calcs.app.core.Painter
 import com.calcs.app.core.Reports
 import com.calcs.app.core.Xlsx
 import java.io.ByteArrayOutputStream
-
-private fun androidx.compose.ui.graphics.Color.toArgbInt(): Int = android.graphics.Color.argb((alpha * 255).toInt(), (red * 255).toInt(), (green * 255).toInt(), (blue * 255).toInt())
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -159,3 +157,4 @@ object Exporter {
         catch (_: ActivityNotFoundException) { Toast.makeText(ctx, "No app available to share with.", Toast.LENGTH_LONG).show() }
     }
 }
+private fun androidx.compose.ui.graphics.Color.toArgbInt(): Int = android.graphics.Color.argb((alpha * 255).toInt(), (red * 255).toInt(), (green * 255).toInt(), (blue * 255).toInt())
