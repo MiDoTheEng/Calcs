@@ -136,8 +136,7 @@ fun Panel(title: String?, help: String = "", modifier: Modifier = Modifier, cont
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = cc.surface,
-        border = androidx.compose.foundation.BorderStroke(1.dp, cc.line)
+        color = cc.surface
     ) {
         Column(Modifier.padding(16.dp)) {
             if (title != null) Text(title, style = T.section, color = MaterialTheme.colorScheme.primary)

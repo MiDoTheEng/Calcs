@@ -262,6 +262,7 @@ fun ToolContent(app: AppState, t: ToolDef) {
     val s = app.state(t)
     val r: Res = remember(v, gen, t.id) { try { t.compute(s) } catch (e: Exception) { Res() } }
     var ask by remember { mutableStateOf<String?>(null) }
+    val onlyUsed = remember { androidx.compose.runtime.mutableStateMapOf<String, Boolean>() }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val w: Dp = minOf(maxWidth, 1240.dp)
         val narrow = w < 600.dp
@@ -269,12 +270,11 @@ fun ToolContent(app: AppState, t: ToolDef) {
         key(gen) {
             LazyColumn(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.fillMaxSize()
             ) {
-                item {
-                    Column(Modifier.widthIn(max = 1240.dp).fillMaxWidth()) {
+                item(key = "head", contentType = "head") {
+                    Column(Modifier.widthIn(max = 1240.dp).fillMaxWidth().padding(bottom = 14.dp)) {
                         FlowRow(verticalArrangement = Arrangement.spacedBy(8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                             Column(Modifier.widthIn(min = 240.dp)) {
                                 Text(t.title, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = cc.ink)
@@ -289,14 +289,34 @@ fun ToolContent(app: AppState, t: ToolDef) {
                         Tiles(try { t.tiles(s, r) } catch (e: Exception) { emptyList() }, w - 32.dp)
                     }
                 }
-                t.blocks.forEach { blk ->
-                    item {
-                        Box(Modifier.widthIn(max = 1240.dp).fillMaxWidth()) {
-                            when (blk) {
-                                is Section -> SectionView(app, blk, s, r, wide, narrow)
-                                is Grid -> GridView(blk, s, r, app, w)
-                                is Note -> Text(blk.text, style = T.small, color = cc.muted, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
-                                SketchBlock -> BranchSketch(s, r, w)
+                t.blocks.forEachIndexed { bi, blk ->
+                    if (blk is Grid) {
+                        // header, each row and footer are separate lazy items → smooth scrolling on long lists
+                        ensureRows(blk, s)
+                        val lay = gridLayout(blk, w)
+                        val only = onlyUsed[blk.key] == true
+                        item(key = "g$bi-h", contentType = "grid-h") {
+                            Part(PartPos.TOP) { GridHeader(blk, lay, only) { onlyUsed[blk.key] = !only } }
+                        }
+                        val list = s.list(blk.key)
+                        for (i in 0 until com.calcs.app.core.Reports.rowCount(blk, s)) {
+                            if (only && blk.fixed != null && !rowUsedPublic(blk, list[i])) continue
+                            item(key = "g$bi-r$i", contentType = if (lay.table) "row-t$bi" else "row-c$bi") {
+                                Part(PartPos.MID) { GridRow(blk, s, r, app, lay, i) }
+                            }
+                        }
+                        item(key = "g$bi-f", contentType = "grid-f") {
+                            Part(PartPos.BOTTOM) { GridFooter(blk, s, r, app, lay) }
+                        }
+                    } else {
+                        item(key = "b$bi", contentType = blk::class.simpleName) {
+                            Box(Modifier.widthIn(max = 1240.dp).fillMaxWidth().padding(bottom = 14.dp)) {
+                                when (blk) {
+                                    is Section -> SectionView(app, blk, s, r, wide, narrow)
+                                    is Note -> Text(blk.text, style = T.small, color = cc.muted, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                    SketchBlock -> BranchSketch(s, r, w)
+                                    is Grid -> {}
+                                }
                             }
                         }
                     }
@@ -308,6 +328,26 @@ fun ToolContent(app: AppState, t: ToolDef) {
         "example" -> Confirm("Load the worked example?", "Replaces the inputs of “${t.title}” with the example values.", "Load example", { app.resetTool(t, false) }) { ask = null }
         "clear" -> Confirm("Clear this calculation?", "Empties the quantities and rows of “${t.title}” so you can enter your project.", "Clear", { app.resetTool(t, true) }) { ask = null }
     }
+}
+
+enum class PartPos { TOP, MID, BOTTOM }
+
+/** A slice of a card that is split over several lazy items. */
+@Composable
+fun Part(pos: PartPos, content: @Composable () -> Unit) {
+    val cc = LocalCalc.current
+    val r = 16.dp
+    val shape = when (pos) {
+        PartPos.TOP -> RoundedCornerShape(topStart = r, topEnd = r)
+        PartPos.MID -> androidx.compose.ui.graphics.RectangleShape
+        PartPos.BOTTOM -> RoundedCornerShape(bottomStart = r, bottomEnd = r)
+    }
+    Box(
+        Modifier.widthIn(max = 1240.dp).fillMaxWidth()
+            .padding(bottom = if (pos == PartPos.BOTTOM) 14.dp else 0.dp)
+            .clip(shape).background(cc.surface)
+            .padding(start = 16.dp, end = 16.dp, top = if (pos == PartPos.TOP) 16.dp else 0.dp, bottom = if (pos == PartPos.BOTTOM) 16.dp else 0.dp)
+    ) { content() }
 }
 
 @Composable
