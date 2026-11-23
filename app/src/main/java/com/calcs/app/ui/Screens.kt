@@ -256,8 +256,6 @@ fun HomeScreen(app: AppState) {
                     Text("Pick a branch, enter your data, export the calculation as PDF or Excel.", color = cc.muted)
                 }
             }
-            Catalog.BRANCHES.forEach { b -> item { BranchCard(b.short, b.title, b.desc, b.tools.map { it.title }, accentFor(b.accent, false)) { app.screen = Screen.BranchScr(b.id) } } }
-            item { BranchCard("U", "Unit converter", "Flow, pressure, length, volume, area, power, velocity, sprinkler density & K-factor", emptyList(), Color(0xFF5B5BD6)) { app.screen = Screen.Units } }
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Panel("Project details (printed on every report)") {
                     key(app.generation) { ProjectDetails(app) }
@@ -271,6 +269,8 @@ fun HomeScreen(app: AppState) {
                     }
                 }
             }
+            Catalog.BRANCHES.forEach { b -> item { BranchCard(b.short, b.title, b.desc, b.tools.map { it.title }, accentFor(b.accent, false)) { app.screen = Screen.BranchScr(b.id) } } }
+            item { BranchCard("U", "Unit converter", "Flow, pressure, length, volume, area, power, velocity, sprinkler density & K-factor", emptyList(), Color(0xFF5B5BD6)) { app.screen = Screen.Units } }
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Text("Educational tool – verify every value against the governing code edition and the authority requirements.", style = T.small, color = cc.muted, modifier = Modifier.padding(vertical = 8.dp))
             }
