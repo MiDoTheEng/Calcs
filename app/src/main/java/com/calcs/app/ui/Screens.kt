@@ -296,7 +296,9 @@ private fun BranchCard(code: String, title: String, desc: String, tools: List<St
 fun BranchScreen(app: AppState, b: Branch) {
     val cc = LocalCalc.current
     BackHandler { app.saveNow(); app.screen = Screen.Home }
-    var tab by remember { mutableStateOf((app.lastTab[b.id] ?: 0).coerceIn(0, b.tools.size - 1)) }
+    // tab 0 = system overview (schematic); tab i = calculation i-1. Every system opens on its overview.
+    var tab by remember { mutableStateOf(0) }
+    val tool: ToolDef? = if (tab == 0) null else b.tools[tab - 1]
     Scaffold(
         containerColor = cc.bg,
         topBar = {
@@ -305,20 +307,22 @@ fun BranchScreen(app: AppState, b: Branch) {
                 TopAppBar(
                     navigationIcon = { IconButton(onClick = { app.saveNow(); app.screen = Screen.Home }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } },
                     title = { Column { Text(b.title, fontWeight = FontWeight.Bold); Text(app.project.name.ifBlank { "Untitled project" }, style = T.small, color = cc.muted, maxLines = 1, overflow = TextOverflow.Ellipsis) } },
-                    actions = { ExportActions(app, listOf(b), b.tools[tab]) },
+                    actions = { ExportActions(app, listOf(b), tool) },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = cc.surface)
                 )
                 ScrollableTabRow(selectedTabIndex = tab, edgePadding = 12.dp, containerColor = cc.surface) {
-                    b.tools.forEachIndexed { i, t ->
-                        Tab(selected = i == tab, onClick = { tab = i; app.lastTab[b.id] = i; app.touch() },
-                            text = { Text(t.title, fontWeight = if (i == tab) FontWeight.Bold else FontWeight.Normal) })
+                    (listOf("Overview") + b.tools.map { it.title }).forEachIndexed { i, title ->
+                        Tab(selected = i == tab, onClick = { tab = i },
+                            text = { Text(title, fontWeight = if (i == tab) FontWeight.Bold else FontWeight.Normal) })
                     }
                 }
             }
         }
     ) { pad ->
         Box(Modifier.padding(top = pad.calculateTopPadding()).fillMaxSize()) {
-            key(b.tools[tab].id) { ToolContent(app, b.tools[tab]) }
+            if (tool == null) {
+                BoxWithConstraints(Modifier.fillMaxSize()) { OverviewContent(b, minOf(maxWidth, 1240.dp)) { t -> tab = t + 1 } }
+            } else key(tool.id) { ToolContent(app, tool) }
         }
     }
 }

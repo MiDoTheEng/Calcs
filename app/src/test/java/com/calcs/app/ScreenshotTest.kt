@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.calcs.app.core.Catalog
 import com.calcs.app.ui.AppState
@@ -37,10 +39,15 @@ class ScreenshotTest(private val name: String, private val screen: String, priva
         app.screen = when (screen) {
             "home" -> Screen.Home
             "units" -> Screen.Units
-            else -> { app.lastTab[screen] = tab; Screen.BranchScr(screen) }
+            else -> Screen.BranchScr(screen)
         }
         rule.setContent { CalcsApp(app) }
         rule.waitForIdle()
+        if (tab > 0) {   // tab index 0 = overview, tools start at 1
+            val b = Catalog.BRANCHES.first { it.id == screen }
+            rule.onNodeWithText(b.tools[tab - 1].title, useUnmergedTree = true).performClick()
+            rule.waitForIdle()
+        }
         val root = rule.activity.window.decorView
         val bmp = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888)
         root.draw(Canvas(bmp))
@@ -61,15 +68,20 @@ class ScreenshotTest(private val name: String, private val screen: String, priva
             val l = mutableListOf<Array<Any>>()
             l.add(arrayOf("00_home_tablet", "home", 0, TAB_L))
             l.add(arrayOf("01_home_phone_dark", "home", 0, "w411dp-h891dp-night-mdpi"))
-            Catalog.BRANCHES.forEach { b -> b.tools.forEachIndexed { i, t -> l.add(arrayOf("tab_${b.id}_${i}_${t.id}", b.id, i, TAB_TALL)) } }
-            l.add(arrayOf("tabP_water_0", "water", 0, TAB_P_TALL))
-            l.add(arrayOf("tabP_hvac_0", "hvac", 0, "w800dp-h2600dp-night-mdpi"))
-            l.add(arrayOf("phone_water_0", "water", 0, PHONE_TALL))
-            l.add(arrayOf("phone_drainage_1", "drainage", 1, PHONE_TALL))
-            l.add(arrayOf("phone_fire_2_dark", "fire", 2, "w411dp-h2600dp-night-mdpi"))
-            l.add(arrayOf("phone_hvac_0", "hvac", 0, PHONE_TALL))
-            l.add(arrayOf("phone_hvac_2", "hvac", 2, PHONE_TALL))
-            l.add(arrayOf("phone_fire_0_view", "fire", 0, PHONE))
+            Catalog.BRANCHES.forEach { b ->
+                l.add(arrayOf("map_${b.id}_tablet", b.id, 0, TAB_L))
+                b.tools.forEachIndexed { i, t -> l.add(arrayOf("tab_${b.id}_${i}_${t.id}", b.id, i + 1, TAB_TALL)) }
+            }
+            l.add(arrayOf("map_hvac_phone", "hvac", 0, PHONE_TALL))
+            l.add(arrayOf("map_fire_tabP_dark", "fire", 0, "w800dp-h1280dp-night-mdpi"))
+            l.add(arrayOf("tabP_water_0", "water", 1, TAB_P_TALL))
+            l.add(arrayOf("tabP_hvac_0", "hvac", 1, "w800dp-h2600dp-night-mdpi"))
+            l.add(arrayOf("phone_water_0", "water", 1, PHONE_TALL))
+            l.add(arrayOf("phone_drainage_1", "drainage", 2, PHONE_TALL))
+            l.add(arrayOf("phone_fire_2_dark", "fire", 3, "w411dp-h2600dp-night-mdpi"))
+            l.add(arrayOf("phone_hvac_0", "hvac", 1, PHONE_TALL))
+            l.add(arrayOf("phone_hvac_2", "hvac", 3, PHONE_TALL))
+            l.add(arrayOf("phone_fire_0_view", "fire", 1, PHONE))
             l.add(arrayOf("units_tablet", "units", 0, "w800dp-h1280dp-mdpi"))
             return l
         }
