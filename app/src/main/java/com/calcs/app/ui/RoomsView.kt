@@ -112,9 +112,9 @@ private fun RoomCard(b: Rooms, rooms: MutableList<RowData>, i: Int, r: RowData, 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(if (!b.perUnit) "How many" else if (where == "common") "How many in the building" else "How many per apartment", style = T.small, color = cc.muted, modifier = Modifier.weight(1f))
             val n = r.n0("n")
-            Step("−") { r["n"] = toText(maxOf(0.0, n - 1)); app.touch() }
+            Step("−") { r["n"] = toText(maxOf(0.0, r.n0("n") - 1)); app.touch() }
             NumBox(fieldId(r, "n"), "${r["name"]} – how many", r["n"] ?: "", Modifier.width(70.dp).padding(horizontal = 6.dp), get = { r["n"] ?: "" }) { v -> r["n"] = v; app.touch() }
-            Step("+") { r["n"] = toText(n + 1); app.touch() }
+            Step("+") { r["n"] = toText(r.n0("n") + 1); app.touch() }
         }
         Spacer(Modifier.height(8.dp))
         HorizontalDivider(color = cc.line)
@@ -135,16 +135,14 @@ private fun RoomCard(b: Rooms, rooms: MutableList<RowData>, i: Int, r: RowData, 
                         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                             variants.forEach { j ->
                                 DropdownMenuItem(text = { Text(b.labels[j].joinToString(" · ").replace(" · -", ""), fontWeight = if (j == idx) FontWeight.Bold else FontWeight.Normal) },
-                                    onClick = { Rooms.setFx(r, fx.mapIndexed { m, p -> if (m == k) j to p.second else p }); menu = false; app.touch() })
+                                    onClick = { Rooms.setFx(r, Rooms.fx(r).map { if (it.first == idx) j to it.second else it }); menu = false; app.touch() })
                             }
                         }
                     } else if (vt.isNotEmpty()) Text(vt, fontSize = 11.sp, color = cc.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                Step("−", 34.dp) {
-                    Rooms.setFx(r, if (q <= 1) fx.filterIndexed { m, _ -> m != k } else fx.mapIndexed { m, p -> if (m == k) p.first to q - 1 else p }); app.touch()
-                }
+                Step("−", 34.dp) { bump(r, idx, -1.0); app.touch() }
                 Text(toText(q), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = cc.ink, style = T.num, modifier = Modifier.width(30.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                Step("+", 34.dp) { Rooms.setFx(r, fx.mapIndexed { m, p -> if (m == k) p.first to q + 1 else p }); app.touch() }
+                Step("+", 34.dp) { bump(r, idx, 1.0); app.touch() }
             }
         }
         Box {
@@ -158,14 +156,20 @@ private fun RoomCard(b: Rooms, rooms: MutableList<RowData>, i: Int, r: RowData, 
                         leadingIcon = { FixtureIcon(b.icons.getOrNull(j) ?: "sink", 22.dp) },
                         text = { Column { Text(base(b.labels[j][0]), fontWeight = FontWeight.SemiBold); val v = b.labels[j].joinToString(" · ").removePrefix(base(b.labels[j][0])).trim(' ', ',', '·', '-'); if (v.isNotEmpty()) Text(v, fontSize = 11.sp, color = cc.muted) } },
                         onClick = {
-                            val ex = fx.indexOfFirst { it.first == j }
-                            Rooms.setFx(r, if (ex >= 0) fx.mapIndexed { m, p -> if (m == ex) p.first to p.second + 1 else p } else fx + (j to 1.0))
+                            bump(r, j, 1.0)
                             add = false; app.touch()
                         })
                 }
             }
         }
     }
+}
+
+/** Adds d to fixture [idx] of the room, reading the room as it is NOW (never a stale copy); 0 removes the line. */
+private fun bump(r: RowData, idx: Int, d: Double) {
+    val cur = Rooms.fx(r)
+    val q = (cur.firstOrNull { it.first == idx }?.second ?: 0.0) + d
+    Rooms.setFx(r, if (q <= 0) cur.filter { it.first != idx } else if (cur.any { it.first == idx }) cur.map { if (it.first == idx) idx to q else it } else cur + (idx to q))
 }
 
 @Composable

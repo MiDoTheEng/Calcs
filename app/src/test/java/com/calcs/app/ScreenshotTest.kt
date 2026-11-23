@@ -63,7 +63,9 @@ class ScreenshotTest(private val name: String, private val screen: String, priva
             rule.onAllNodesWithText("Clear", useUnmergedTree = true).let { it[it.fetchSemanticsNodes().size - 1] }.performClick(); rule.waitForIdle()
             rule.onAllNodesWithText("Bathroom", useUnmergedTree = true)[0].performClick(); rule.waitForIdle()
             rule.onAllNodesWithText("Kitchen", useUnmergedTree = true)[0].performClick(); rule.waitForIdle()
-            rule.onAllNodesWithText("+", useUnmergedTree = true)[0].performClick(); rule.waitForIdle()
+            repeat(3) { rule.onAllNodesWithText("+", useUnmergedTree = true)[0].performClick(); rule.waitForIdle() }   // bathrooms 1 → 4
+            repeat(2) { rule.onAllNodesWithText("+", useUnmergedTree = true)[1].performClick(); rule.waitForIdle() }   // WCs 1 → 3
+            rule.onAllNodesWithText("−", useUnmergedTree = true)[1].performClick(); rule.waitForIdle()                // WCs 3 → 2
             rule.mainClock.advanceTimeBy(600); rule.waitForIdle()
         }
         val root = rule.activity.window.decorView

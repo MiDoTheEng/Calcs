@@ -176,9 +176,9 @@ fun FixturePicker(b: Grid, list: List<RowData>, app: AppState, avail: Dp) {
                 if (others.isNotEmpty()) Text("Also: " + others.joinToString(", ") { "${toText(qty(it))} × ${variantLabel(fixed[it])}" }, fontSize = 10.5.sp, color = cc.muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Stepper("−") { row[key] = toText(maxOf(0.0, q - 1)); app.touch() }
+                    Stepper("−") { row[key] = toText(maxOf(0.0, parseNum(row[key]).let { if (it.isNaN()) 0.0 else it } - 1)); app.touch() }
                     NumBox(fieldId(row, key), "$name – ${variantLabel(fixed[cur])} – ${col.label}", row[key] ?: "", Modifier.weight(1f).padding(horizontal = 6.dp), get = { row[key] ?: "" }) { v -> row[key] = v; app.touch() }
-                    Stepper("+") { row[key] = toText(q + 1); app.touch() }
+                    Stepper("+") { row[key] = toText(parseNum(row[key]).let { if (it.isNaN()) 0.0 else it } + 1); app.touch() }
                 }
             }
         }
