@@ -106,7 +106,7 @@ open class AndroidPainter(private val ctx: Context) : Painter {
     }
 }
 
-class Saved(val uri: Uri, val mime: String, val name: String)
+class Saved(val uri: Uri, val mime: String, val name: String, val folder: String)
 
 object Exporter {
     fun build(ctx: Context, app: AppState, branches: List<Branch>, pdf: Boolean): Pair<String, ByteArray> {
@@ -129,25 +129,30 @@ object Exporter {
         return name to bytes
     }
 
-    fun save(ctx: Context, name: String, bytes: ByteArray): Saved {
+    /** Folder for a project: Downloads/Calcs/<project name> (characters Android doesn't allow removed). */
+    fun projectFolder(project: String): String =
+        project.replace(Regex("[\\\\/:*?\"<>|]"), " ").replace(Regex("\\s+"), " ").trim().trim('.').take(60).ifEmpty { "Untitled project" }
+
+    fun save(ctx: Context, name: String, bytes: ByteArray, project: String): Saved {
+        val folder = "Calcs/" + projectFolder(project)
         val mime = if (name.endsWith(".pdf")) "application/pdf" else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         val cr = ctx.contentResolver
         val v = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, name)
             put(MediaStore.MediaColumns.MIME_TYPE, mime)
-            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/Calcs")
+            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/" + folder)
             put(MediaStore.MediaColumns.IS_PENDING, 1)
         }
         val uri = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v) ?: error("Could not create the file")
         cr.openOutputStream(uri)?.use { it.write(bytes) } ?: error("Could not write the file")
         cr.update(uri, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
-        return Saved(uri, mime, name)
+        return Saved(uri, mime, name, "Downloads/$folder")
     }
 
     fun open(ctx: Context, s: Saved) {
         val i = Intent(Intent.ACTION_VIEW).setDataAndType(s.uri, s.mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
         try { ctx.startActivity(Intent.createChooser(i, "Open with").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-        catch (_: ActivityNotFoundException) { Toast.makeText(ctx, "No app installed that opens this file. It is in Downloads/Calcs.", Toast.LENGTH_LONG).show() }
+        catch (_: ActivityNotFoundException) { Toast.makeText(ctx, "No app installed that opens this file. It is in ${s.folder}.", Toast.LENGTH_LONG).show() }
     }
 
     fun shareMany(ctx: Context, list: List<Saved>) {

@@ -117,7 +117,7 @@ fun ExportActions(app: AppState, branches: List<Branch>, current: ToolDef? = nul
         busy = true
         scope.launch {
             try {
-                saved = withContext(Dispatchers.Default) { jobs.map { bs -> val (name, bytes) = Exporter.build(ctx, app, bs, pdf); Exporter.save(ctx, name, bytes) } }
+                saved = withContext(Dispatchers.Default) { jobs.map { bs -> val (name, bytes) = Exporter.build(ctx, app, bs, pdf); Exporter.save(ctx, name, bytes, app.project.name) } }
             } catch (e: Exception) { error = e.message ?: e.toString() }
             busy = false
         }
@@ -174,8 +174,8 @@ fun ExportActions(app: AppState, branches: List<Branch>, current: ToolDef? = nul
     if (saved.isNotEmpty()) {
         val list = saved
         AlertDialog(onDismissRequest = { saved = emptyList() },
-            title = { Text(if (list.size == 1) "Saved to Downloads/Calcs" else "${list.size} files saved to Downloads/Calcs") },
-            text = { Column { list.forEach { Text(it.name, style = T.small) } } },
+            title = { Text(if (list.size == 1) "Saved" else "${list.size} files saved") },
+            text = { Column { Text("Folder: ${list[0].folder}", fontWeight = FontWeight.SemiBold); Spacer(Modifier.height(6.dp)); list.forEach { Text(it.name, style = T.small) } } },
             confirmButton = {
                 Row {
                     TextButton(onClick = { saved = emptyList(); Exporter.shareMany(ctx, list) }) { Text("Share") }
