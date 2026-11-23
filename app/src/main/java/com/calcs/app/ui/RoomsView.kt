@@ -92,6 +92,7 @@ fun RoomsView(b: Rooms, s: ToolState, app: AppState, avail: Dp) {
 private fun RoomCard(b: Rooms, rooms: MutableList<RowData>, i: Int, r: RowData, app: AppState, w: Dp, where: String) {
     val cc = LocalCalc.current
     val accent = MaterialTheme.colorScheme.primary
+    @Suppress("UNUSED_VARIABLE") val ver = app.version   // redraw after every change (the room map is not observable)
     val fx = Rooms.fx(r)
     var add by remember { mutableStateOf(false) }
     Column(Modifier.width(w).clip(RoundedCornerShape(14.dp)).background(cc.surface2).border(1.dp, cc.line, RoundedCornerShape(14.dp)).padding(12.dp)) {

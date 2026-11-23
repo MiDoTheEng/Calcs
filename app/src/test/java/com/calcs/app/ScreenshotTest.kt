@@ -58,6 +58,14 @@ class ScreenshotTest(private val name: String, private val screen: String, priva
             rule.mainClock.advanceTimeBy(600)
             rule.waitForIdle()
         }
+        if (name.startsWith("rooms")) {   // Clear → add a bathroom and a kitchen → totals must follow
+            rule.onAllNodesWithText("Clear", useUnmergedTree = true)[0].performClick(); rule.waitForIdle()
+            rule.onAllNodesWithText("Clear", useUnmergedTree = true).let { it[it.fetchSemanticsNodes().size - 1] }.performClick(); rule.waitForIdle()
+            rule.onAllNodesWithText("Bathroom", useUnmergedTree = true)[0].performClick(); rule.waitForIdle()
+            rule.onAllNodesWithText("Kitchen", useUnmergedTree = true)[0].performClick(); rule.waitForIdle()
+            rule.onAllNodesWithText("+", useUnmergedTree = true)[0].performClick(); rule.waitForIdle()
+            rule.mainClock.advanceTimeBy(600); rule.waitForIdle()
+        }
         val root = rule.activity.window.decorView
         val bmp = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888)
         root.draw(Canvas(bmp))
@@ -95,6 +103,7 @@ class ScreenshotTest(private val name: String, private val screen: String, priva
             l.add(arrayOf("units_tablet", "units", 0, "w800dp-h1280dp-mdpi"))
             l.add(arrayOf("keypad_tablet", "water", 1, TAB_L))
             l.add(arrayOf("keypad_phone", "water", 1, PHONE))
+            l.add(arrayOf("rooms_flow", "water", 1, TAB_TALL))
             return l
         }
     }
