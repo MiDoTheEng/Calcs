@@ -324,7 +324,7 @@ private val hvacSchem = Schematic("HVAC – VRF & split units, fresh air, exhaus
         Comp(1, "VRF outdoor unit", "One outdoor unit serves many indoor units. Size it from the sum of the indoor loads with diversity; keep the combination ratio within the maker's limits (≈ 50–130 %) and check pipe length / height limits.", 150f, 40f, 0),
         Comp(2, "Refrigerant piping & branch joints", "Liquid + gas pipes with Y-joints (refnets) to each indoor unit. Sizes come from the manufacturer's selection software, based on the downstream indoor capacity.", 330f, 128f),
         Comp(3, "Ducted indoor unit (concealed)", "Serves a large room through ducts. Select it from the room's total load (TR / kW) and its supply airflow; its ESP comes from the duct calculation.", 238f, 228f, 0),
-        Comp(4, "Supply duct & diffusers", "Sized by equal friction; the duct losses + diffuser give the ESP the ducted unit must deliver.", 335f, 268f, 2),
+        Comp(4, "Supply duct & diffusers", "Sized by equal friction; the duct losses + diffuser give the ESP the ducted unit must deliver.", 335f, 272f, 2),
         Comp(5, "Return grille / ceiling plenum", "Room air back to the indoor unit, ducted or through the ceiling void.", 120f, 275f, 2),
         Comp(6, "Cassette indoor unit", "Ceiling unit for rooms without ducts (meetings, shops). Pick the size from the room load.", 570f, 278f, 0),
         Comp(7, "Wall-mounted split + its outdoor unit", "One indoor unit with its own condensing unit on the roof – for single rooms, offices, apartments.", 785f, 352f, 0),
@@ -332,7 +332,7 @@ private val hvacSchem = Schematic("HVAC – VRF & split units, fresh air, exhaus
         Comp(9, "Fresh air duct & grilles", "Delivers the treated fresh air to each space at its ventilation rate.", 650f, 205f, 1),
         Comp(10, "Toilet exhaust & exhaust fan", "Keeps toilets negative; rate per WC or per m² (ASHRAE 62.1 Table 6-4).", 912f, 52f, 1),
         Comp(11, "Condensate drain", "From every indoor unit to a trapped drain point, sloped ≥ 1 %. Cassettes / ducted units often need a small lift pump.", 712f, 440f),
-        Comp(12, "Rooms, loads & controller", "Each room's cooling load (walls, glass, people, lights, equipment) sets the unit size; a wired remote controller / thermostat per room.", 300f, 450f, 0)
+        Comp(12, "Rooms, loads & controller", "Each room's cooling load (walls, glass, people, lights, equipment) sets the unit size; a wired remote controller / thermostat per room.", 385f, 430f, 0)
     )) {
     // roof, ceiling void, rooms
     line(40f, 130f, 970f, 130f, cc.muted, 6f); line(40f, 250f, 970f, 250f, cc.line, 3f); line(40f, 560f, 970f, 560f, cc.muted, 6f)
@@ -349,8 +349,8 @@ private val hvacSchem = Schematic("HVAC – VRF & split units, fresh air, exhaus
     poly(570f, 145f, 570f, 230f, c = REF, w = 4f); circle(570f, 145f, 4f, REF)
     // ducted indoor unit + supply duct + diffusers + return
     rect(200f, 165f, 80f, 45f, cc.surface2, cc.muted, 2.5f); fan(258f, 187f, 11f, SA); text(222f, 187f, "IU", 10f, cc.ink, true)
-    poly(280f, 180f, 410f, 180f, c = SA, w = 8f); arrow(345f, 180f, 'r', SA, 7f)
-    listOf(310f, 390f).forEach { dx -> line(dx, 180f, dx, 246f, SA, 5f); diffuser(dx, 250f, SA) }
+    poly(280f, 180f, 375f, 180f, c = SA, w = 8f); arrow(330f, 180f, 'r', SA, 7f)
+    listOf(305f, 365f).forEach { dx -> line(dx, 180f, dx, 246f, SA, 5f); diffuser(dx, 250f, SA) }
     rect(102f, 250f, 36f, 7f, RA, null, r = 1f); poly(120f, 250f, 120f, 190f, 200f, 190f, c = RA, w = 6f); arrow(165f, 190f, 'r', RA, 7f)
     // cassette in the meeting room
     rect(540f, 230f, 60f, 22f, cc.surface2, cc.muted, 2.5f); text(570f, 241f, "Cassette", 8.5f, cc.ink, true)
