@@ -371,8 +371,10 @@ fun ToolContent(app: AppState, t: ToolDef) {
         val w: Dp = minOf(maxWidth, 1240.dp)
         val narrow = w < 600.dp
         val wide = w >= 840.dp
+        val listState = androidx.compose.foundation.lazy.rememberLazyListState()   // kept across rebuilds → no jump to the top
         key(gen) {
             LazyColumn(
+                state = listState,
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.fillMaxSize()
@@ -398,7 +400,7 @@ fun ToolContent(app: AppState, t: ToolDef) {
                         // header, each row and footer are separate lazy items → smooth scrolling on long lists
                         ensureRows(blk, s)
                         val lay = gridLayout(blk, w)
-                        val only = onlyUsed[blk.key] ?: (blk.picker != null)
+                        val only = onlyUsed[blk.key] ?: blk.readOnly
                         item(key = "g$bi-h", contentType = "grid-h") {
                             Part(PartPos.TOP) { GridHeader(blk, lay, only, picker = { if (blk.picker != null && blk.fixed != null) { FixturePicker(blk, s.list(blk.key), app, w); Spacer(Modifier.height(16.dp)) } }) { onlyUsed[blk.key] = !only } }
                         }
@@ -420,6 +422,7 @@ fun ToolContent(app: AppState, t: ToolDef) {
                                     is Note -> Text(blk.text, style = T.small, color = cc.muted, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
                                     SketchBlock -> BranchSketch(s, r, w)
                                     is Grid -> {}
+                                    is com.calcs.app.core.Rooms -> RoomsView(blk, s, app, w)
                                 }
                             }
                         }

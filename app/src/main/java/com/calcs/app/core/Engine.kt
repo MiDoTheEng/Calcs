@@ -140,6 +140,7 @@ object Eng {
 
     /* ---------------------------- water supply ---------------------------- */
     fun wsBuilding(s: ToolState): Res {
+        Rooms.apply(s, "rooms", "fix", WSFU.size, "unit", "extra")
         val r = Res()
         val units = s.n0("units")
         val persons = units * s.n0("persons")
@@ -215,6 +216,7 @@ object Eng {
     }
 
     fun wsHot(s: ToolState): Res {
+        Rooms.apply(s, "rooms", "qty", HOT_FIXTURES.size, "q", null)
         val r = Res(); var possible = 0.0
         val q = s.list("qty")
         HOT_FIXTURES.forEachIndexed { i, f ->
@@ -243,6 +245,7 @@ object Eng {
 
     /* ------------------------------ drainage ------------------------------ */
     fun drFixtures(s: ToolState): Res {
+        Rooms.apply(s, "rooms", "fix", DFU.size, "unit", "extra")
         val r = Res()
         val units = s.n0("units")
         var t = 0.0; var so = 0.0; var w = 0.0; var us = 0.0; var uw = 0.0; var comb = false

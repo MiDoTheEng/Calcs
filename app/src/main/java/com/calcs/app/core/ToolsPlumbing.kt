@@ -7,18 +7,45 @@ object PlumbingTools {
     private val DRAIN_SEL = optPairs("" to "—", 1.25 to "1¼\"", 1.5 to "1½\"", 2 to "2\"", 2.5 to "2½\"", 3 to "3\"", 4 to "4\"", 5 to "5\"", 6 to "6\"", 8 to "8\"")
     private val LEADER_SEL = optPairs("" to "—", 2 to "2\"", 2.5 to "2½\"", 3 to "3\"", 4 to "4\"", 5 to "5\"", 6 to "6\"", 8 to "8\"")
 
+    /* rooms: a room type and its usual fixtures (index in the code table, qty) */
+    private val WS_ROOMS = listOf(
+        RoomTemplate("Bathroom", "bathgroup", listOf(23 to 1, 11 to 1, 15 to 1)),
+        RoomTemplate("Kitchen", "sink", listOf(8 to 1, 19 to 1)),
+        RoomTemplate("Guest toilet", "wc", listOf(23 to 1, 11 to 1)),
+        RoomTemplate("Laundry", "washer", listOf(19 to 1, 10 to 1)),
+        RoomTemplate("Other room", "sink", emptyList()),
+        RoomTemplate("Public toilet", "wc", listOf(25 to 1, 12 to 1), common = true),
+        RoomTemplate("Gym / changing", "shower", listOf(25 to 1, 12 to 1, 14 to 1), common = true),
+        RoomTemplate("Other room", "sink", emptyList(), common = true))
+    private val DR_ROOMS = listOf(
+        RoomTemplate("Bathroom", "bathgroup", listOf(0 to 1, 8 to 1, 9 to 1)),
+        RoomTemplate("Kitchen", "sink", listOf(12 to 1, 13 to 1, 14 to 1)),
+        RoomTemplate("Guest toilet", "wc", listOf(0 to 1, 8 to 1)),
+        RoomTemplate("Laundry", "washer", listOf(14 to 1, 16 to 1)),
+        RoomTemplate("Other room", "sink", emptyList()),
+        RoomTemplate("Public toilet", "wc", listOf(2 to 1, 8 to 1, 18 to 1), common = true),
+        RoomTemplate("Gym / changing", "shower", listOf(2 to 1, 8 to 1, 9 to 1), common = true),
+        RoomTemplate("Other room", "sink", emptyList(), common = true))
+    private val HOT_ROOMS = listOf(
+        RoomTemplate("Bathroom", "bathgroup", listOf(0 to 1, 3 to 1)),
+        RoomTemplate("Kitchen", "sink", listOf(4 to 1, 5 to 1)),
+        RoomTemplate("Guest toilet", "wc", listOf(0 to 1)),
+        RoomTemplate("Laundry", "washer", listOf(6 to 1)),
+        RoomTemplate("Public toilet", "wc", listOf(1 to 1)),
+        RoomTemplate("Other room", "sink", emptyList()))
+    private fun rm(l: List<RoomTemplate>, name: String, n: Int, common: Boolean = false) = Rooms.room(l.first { it.name == name && it.common == common }, n)
+
     /* ============================== WATER SUPPLY ============================== */
     private fun wsFixDefaults(): List<RowData> = Eng.WSFU.indices.map { row("unit" to 0, "extra" to 0) }
     val wsBuilding = ToolDef(
         id = "ws-building", title = "Building demand & pump", sub = "Tank, WSFU → peak flow, main pipe, friction, pump",
         defaults = {
-            val fix = wsFixDefaults().toMutableList()
-            fix[8]["unit"] = "1"; fix[11]["unit"] = "2"; fix[15]["unit"] = "2"; fix[19]["unit"] = "1"; fix[23]["unit"] = "2"
-            state("units" to 20, "persons" to 5, "lpd" to 200, "days" to 1.5, "vTarget" to 1.5, "id" to 66, "vMax" to 2, "C" to 150,
-                "len" to 60, "fpct" to 30, "feq" to "", "stat" to 15, "resBar" to 1.5, "safety" to 10, "eff" to 60, lists = mapOf("fix" to fix))
+            val fix = wsFixDefaults()
+            state("roomsOn" to 1, "units" to 20, "persons" to 5, "lpd" to 200, "days" to 1.5, "vTarget" to 1.5, "id" to 66, "vMax" to 2, "C" to 150,
+                "len" to 60, "fpct" to 30, "feq" to "", "stat" to 15, "resBar" to 1.5, "safety" to 10, "eff" to 60, lists = mapOf("fix" to fix, "rooms" to listOf(rm(WS_ROOMS, "Bathroom", 2), rm(WS_ROOMS, "Kitchen", 1))))
         },
         blank = {
-            state("units" to 1, "persons" to 5, "lpd" to 200, "days" to 1.5, "vTarget" to 1.5, "id" to "", "vMax" to 2, "C" to 150,
+            state("roomsOn" to 1, "units" to 1, "persons" to 5, "lpd" to 200, "days" to 1.5, "vTarget" to 1.5, "id" to "", "vMax" to 2, "C" to 150,
                 "len" to "", "fpct" to 30, "feq" to "", "stat" to "", "resBar" to 1.5, "safety" to 10, "eff" to 60, lists = mapOf("fix" to wsFixDefaults()))
         },
         compute = Eng::wsBuilding,
@@ -33,8 +60,10 @@ object PlumbingTools {
                 Field("lpd", "Daily consumption per person", "L/p/day", "Authority / project requirement"),
                 Field("days", "Storage duration", "days")
             ), results = { _, r -> listOf(RRow("Total persons", r["persons"], "no.", 0), RRow("Daily demand", r["daily"], "m³/day", 2), RRow("Required storage volume", r["tank"], "m³", 2, true)) }, diagram = "ws-tank"),
-            Grid("2 · Fixtures & WSFU (IPC E103.3)", "fix",
-                help = "Quantity per unit × number of units. Extra = fixtures outside the units (lobby, gym…). Bathroom group = WC + lavatory + bath/shower: use it OR the single fixtures, never both.",
+            Rooms("2 · Fixtures, room by room", "rooms", "fix", Eng.WSFU.map { listOf(it.fixture, "${it.occ} · ${it.control}") }, Eng.WSFU.map { fixtureIcon(it.fixture) },
+                WS_ROOMS, perUnit = true, help = "Add the rooms of ONE apartment (e.g. 2 bathrooms + 1 kitchen) – they are multiplied by the number of apartments. Rooms outside the apartments (lobby toilets, gym…) are counted once."),
+            Grid("Fixture totals & WSFU (IPC E103.3)", "fix", readOnly = true,
+                help = "Filled from the rooms above. Bathroom group = WC + lavatory + bath/shower: use it OR the single fixtures, never both.",
                 fixed = Eng.WSFU.map { listOf(it.fixture, it.occ, it.control, it.total) },
                 fixedCols = listOf(FixedCol("Fixture"), FixedCol("Occupancy"), FixedCol("Control"), FixedCol("WSFU each", 2)),
                 cols = listOf(Field("unit", "Qty / unit"), Field("extra", "Extra qty")),
@@ -42,7 +71,7 @@ object PlumbingTools {
                     Out("Total qty", 0) { r, i -> r.row(i, "qty") }, Out("Total WSFU", 1, key = true) { r, i -> r.row(i, "wsfu") },
                     Out("Cold", 1) { r, i -> r.row(i, "cold") }, Out("Hot", 1) { r, i -> r.row(i, "hot") }),
                 totals = { r -> listOf("Total qty" to r["lQty"], "Total WSFU" to r["lWsfu"], "Cold" to r["lCold"], "Hot" to r["lHot"]) },
-                icon = { i -> fixtureIcon(Eng.WSFU[i].fixture) }, picker = "unit",
+                icon = { i -> fixtureIcon(Eng.WSFU[i].fixture) },
                 skipEmpty = true),
             Grid("2b · Other fixtures (not in the table)", "other", titleKey = "name", minRows = 0, skipEmpty = true,
                 help = "A fixture that isn't listed: type its name and its WSFU from the code or manufacturer. Hot = Yes splits it ¾ cold + ¾ hot (IPC rule). Flush valve = Yes switches the Hunter curve.",
@@ -105,20 +134,22 @@ object PlumbingTools {
     val wsHot = ToolDef(
         id = "ws-hot", title = "Hot water heater", sub = "Storage volume & heater power (fixture method)",
         defaults = { state("df" to 0.3, "sf" to 1.25, "tc" to 25, "ts" to 60, "vol" to "", "rec" to 2, "persons" to 4, "lppd" to 50,
-            lists = mapOf("qty" to listOf(2, 0, 0, 2, 1, 1, 1, 0, 0).map { row("q" to it) })) },
+            lists = mapOf("qty" to Eng.HOT_FIXTURES.map { row("q" to 0) }, "rooms" to listOf(rm(HOT_ROOMS, "Bathroom", 2), rm(HOT_ROOMS, "Kitchen", 1)))).also { it.f["roomsOn"] = "1" } },
         blank = { state("df" to 0.3, "sf" to 1.25, "tc" to 25, "ts" to 60, "vol" to "", "rec" to 2, "persons" to 4, "lppd" to 50,
-            lists = mapOf("qty" to Eng.HOT_FIXTURES.map { row("q" to 0) })) },
+            lists = mapOf("qty" to Eng.HOT_FIXTURES.map { row("q" to 0) })).also { it.f["roomsOn"] = "1" } },
         compute = Eng::wsHot,
         tiles = { _, r -> listOf(RRow("Required storage", r["storage"], "L", 0), RRow("Recovery (PMD)", r["pmd"], "L/h", 0), RRow("Heater power", r["pTank"], "kW", 2)) },
         blocks = listOf(
-            Grid("1 · Fixtures served by this heater", "qty",
-                help = "One heater → only the fixtures it serves. ASHRAE / ASPE demand per fixture (apartment house, 60 °C).",
+            Rooms("1 · Rooms served by this heater", "rooms", "qty", Eng.HOT_FIXTURES.map { listOf(it.first, "") }, Eng.HOT_FIXTURES.map { fixtureIcon(it.first) },
+                HOT_ROOMS, perUnit = false, help = "One heater → only the rooms it serves (e.g. one apartment: 2 bathrooms + 1 kitchen)."),
+            Grid("Fixture totals (ASHRAE / ASPE, apartment house, 60 °C)", "qty", readOnly = true,
+                help = "Filled from the rooms above.",
                 fixed = Eng.HOT_FIXTURES.map { listOf(it.first, it.second) },
                 fixedCols = listOf(FixedCol("Fixture"), FixedCol("Demand (US gal/h)", 0)),
                 cols = listOf(Field("q", "Quantity")),
                 outs = listOf(Out("L/h each", 1) { r, i -> r.row(i, "lh") }, Out("Total (L/h)", 1, key = true) { r, i -> r.row(i, "total") }),
                 totals = { r -> listOf("Total (L/h)" to r["lPossible"]) },
-                icon = { i -> fixtureIcon(Eng.HOT_FIXTURES[i].first) }, picker = "q"),
+                icon = { i -> fixtureIcon(Eng.HOT_FIXTURES[i].first) }, skipEmpty = true),
             Grid("1b · Other fixtures (not in the table)", "other", titleKey = "name", minRows = 0, skipEmpty = true,
                 help = "A fixture that isn't listed: its hot water demand per fixture from the manufacturer (L/h; 1 US gal/h = 3.785 L/h).",
                 cols = listOf(Field("name", "Fixture", kind = Kind.TEXT, width = 170), Field("lh", "Demand each", "L/h"), Field("q", "Quantity")),
@@ -146,25 +177,24 @@ object PlumbingTools {
     val drFixtures = ToolDef(
         id = "dr-fixtures", title = "Fixtures & DFU", sub = "Soil / waste DFU for the building and per unit",
         defaults = {
-            val f = dfuDefaults().toMutableList()
-            f[0]["unit"] = "2"; f[2]["extra"] = "2"; f[8]["unit"] = "2"; f[8]["extra"] = "2"; f[9]["unit"] = "2"; f[9]["extra"] = "2"
-            f[12]["unit"] = "1"; f[13]["unit"] = "1"; f[14]["unit"] = "1"
-            state("units" to 12, lists = mapOf("fix" to f))
+            state("roomsOn" to 1, "units" to 12, lists = mapOf("fix" to dfuDefaults(), "rooms" to listOf(rm(DR_ROOMS, "Bathroom", 2), rm(DR_ROOMS, "Kitchen", 1), rm(DR_ROOMS, "Gym / changing", 2, true))))
         },
-        blank = { state("units" to 1, lists = mapOf("fix" to dfuDefaults())) },
+        blank = { state("roomsOn" to 1, "units" to 1, lists = mapOf("fix" to dfuDefaults())) },
         compute = Eng::drFixtures,
         tiles = { _, r -> listOf(RRow("Total DFU", r["total"], "DFU", 1), RRow("Soil DFU", r["soil"], "DFU", 1), RRow("Waste DFU", r["waste"], "DFU", 1),
             RRow("Per unit soil / waste", "${fmt(r["unitSoil"], 0)} / ${fmt(r["unitWaste"], 0)}", "DFU")) },
         blocks = listOf(
             Section("Building", listOf(Field("units", "Number of identical units (apartments)", "no.")), diagram = "dr-building"),
-            Grid("Fixtures & DFU (IPC 709.1)", "fix", skipEmpty = true,
-                help = "Two-pipe system: WC & urinals → soil, the rest → waste. Bathroom groups are valid only for a combined (one-pipe) system.",
+            Rooms("Fixtures, room by room", "rooms", "fix", Eng.DFU.map { listOf(it.fixture, it.occ) }, Eng.DFU.map { fixtureIcon(it.fixture) },
+                DR_ROOMS, perUnit = true, help = "Add the rooms of ONE apartment – they are multiplied by the number of apartments. Rooms outside the apartments are counted once."),
+            Grid("Fixture totals & DFU (IPC 709.1)", "fix", skipEmpty = true, readOnly = true,
+                help = "Filled from the rooms above. Two-pipe system: WC & urinals → soil, the rest → waste. Bathroom groups only for a combined (one-pipe) system.",
                 fixed = Eng.DFU.map { listOf(it.fixture, it.occ, it.dfu, it.system) },
                 fixedCols = listOf(FixedCol("Fixture"), FixedCol("Occupancy"), FixedCol("DFU each", 1), FixedCol("System")),
                 cols = listOf(Field("unit", "Qty / unit"), Field("extra", "Extra qty")),
                 outs = listOf(Out("Total qty", 0) { r, i -> r.row(i, "qty") }, Out("Total DFU", 1, key = true) { r, i -> r.row(i, "dfu") }),
                 totals = { r -> listOf("Total DFU" to r["lTotal"]) },
-                icon = { i -> fixtureIcon(Eng.DFU[i].fixture) }, picker = "unit"),
+                icon = { i -> fixtureIcon(Eng.DFU[i].fixture) }),
             Grid("Other fixtures (not in the table)", "other", titleKey = "name", minRows = 0, skipEmpty = true,
                 help = "A fixture that isn't listed: its DFU from the code or manufacturer (or by trap size, IPC 709.2). Soil = WC / urinal type, Waste = the rest.",
                 cols = listOf(Field("name", "Fixture", kind = Kind.TEXT, width = 170), Field("dfu", "DFU each"), Field("sys", "System", kind = Kind.SELECT, options = opts("Waste", "Soil")),

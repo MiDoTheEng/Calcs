@@ -123,8 +123,57 @@ class Grid(
     val skipEmpty: Boolean = false,
     val minRows: Int = 1,
     val icon: ((Int) -> String)? = null,      // icon per row (fixture lists)
-    val picker: String? = null                 // column edited by the visual picker (− / +)
+    val picker: String? = null,                // column edited by the visual picker (− / +)
+    val readOnly: Boolean = false              // quantities come from elsewhere (the rooms) – shown, not typed
 ) : Block()
+
+/** A room type the user can add (bathroom, kitchen…) with its usual fixtures (index in the code table → qty). */
+class RoomTemplate(val name: String, val icon: String, val fx: List<Pair<Int, Int>>, val common: Boolean = false)
+
+/**
+ * Fixtures entered room by room: "20 apartments, each with 2 bathrooms + 1 kitchen".
+ * Rooms are rows of [key] (name, icon, n, where = apt|common, fx = "i:q,i:q"); the code-table grid [table]
+ * is filled from them (Rooms.apply) and shown read-only as the totals.
+ */
+class Rooms(
+    val title: String, val key: String, val table: String,
+    val labels: List<List<String>>,          // per code-table row: name, variant text
+    val icons: List<String>,
+    val templates: List<RoomTemplate>,
+    val perUnit: Boolean,                    // true: rooms inside each apartment × number of apartments + rooms outside
+    val help: String = ""
+) : Block() {
+    companion object {
+        fun fx(r: RowData): List<Pair<Int, Double>> = r.s("fx").split(',').mapNotNull { p ->
+            val a = p.split(':'); val i = a.getOrNull(0)?.trim()?.toIntOrNull() ?: return@mapNotNull null
+            i to (a.getOrNull(1)?.let { parseNum(it) }?.takeIf { !it.isNaN() } ?: 0.0)
+        }
+        fun setFx(r: RowData, l: List<Pair<Int, Double>>) { r["fx"] = l.joinToString(",") { "${it.first}:${toText(it.second)}" } }
+        fun room(t: RoomTemplate, n: Int = 1) = row("name" to t.name, "icon" to t.icon, "n" to n, "where" to if (t.common) "common" else "apt",
+            "fx" to t.fx.joinToString(",") { "${it.first}:${it.second}" })
+
+        /** Fills the code-table grid from the rooms. Old projects (no rooms yet) are converted once. */
+        fun apply(s: ToolState, roomsKey: String, tableKey: String, size: Int, unitKey: String, extraKey: String?) {
+            val rooms = s.list(roomsKey); val tab = s.list(tableKey)
+            while (tab.size < size) tab.add(linkedMapOf())
+            if (s.f["roomsOn"] != "1") {
+                s.f["roomsOn"] = "1"
+                if (rooms.isEmpty()) {
+                    val inUnit = (0 until size).mapNotNull { i -> tab[i].n0(unitKey).takeIf { it > 0 }?.let { i to it } }
+                    val outside = if (extraKey == null) emptyList() else (0 until size).mapNotNull { i -> tab[i].n0(extraKey).takeIf { it > 0 }?.let { i to it } }
+                    if (inUnit.isNotEmpty()) rooms.add(row("name" to if (extraKey == null) "Fixtures" else "Apartment fixtures", "icon" to "bathgroup", "n" to 1, "where" to "apt").also { setFx(it, inUnit) })
+                    if (outside.isNotEmpty()) rooms.add(row("name" to "Outside the apartments", "icon" to "wc", "n" to 1, "where" to "common").also { setFx(it, outside) })
+                }
+            }
+            val unit = DoubleArray(size); val extra = DoubleArray(size)
+            rooms.forEach { r ->
+                val n = r.n0("n")
+                fx(r).forEach { (i, q) -> if (i in 0 until size) { if (extraKey != null && r.s("where") == "common") extra[i] += n * q else unit[i] += n * q } }
+            }
+            for (i in 0 until size) { tab[i][unitKey] = toText(unit[i]); if (extraKey != null) tab[i][extraKey] = toText(extra[i]) }
+        }
+    }
+}
 
 class Note(val text: String) : Block()
 object SketchBlock : Block()

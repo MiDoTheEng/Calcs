@@ -85,6 +85,15 @@ object Reports {
                     if (rows.isNotEmpty() || b.fixed != null) blocks.add(RTable(b.title, gridHead(b), kinds, rows, totals))
                     b.results?.invoke(s, r)?.let { res -> if (res.isNotEmpty()) blocks.add(RKv("Results", res.map { rr(it) })) }
                 }
+                is Rooms -> {
+                    val rooms = s.list(b.key)
+                    if (rooms.isNotEmpty()) blocks.add(RTable(b.title, listOf("Room", "Where", "No.", "Fixtures in each room"), listOf(CK.FIXED, CK.FIXED, CK.IN, CK.FIXED),
+                        rooms.map { rm ->
+                            val where = if (!b.perUnit) "" else if (rm.s("where") == "common") "Outside apartments" else "In each apartment"
+                            val fx = Rooms.fx(rm).filter { it.second > 0 }.joinToString(" + ") { (i, q) -> "${toText(q)} × ${b.labels.getOrNull(i)?.joinToString(" ")?.trim() ?: "?"}" }
+                            listOf(Cell(rm.s("name")), Cell(where), Cell(rm.s("n"), rm.n0("n"), 0), Cell(fx))
+                        }, null))
+                }
                 is Note -> blocks.add(RNote(b.text))
                 SketchBlock -> {}
             }

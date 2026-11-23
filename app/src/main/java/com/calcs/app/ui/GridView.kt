@@ -91,9 +91,8 @@ fun GridHeader(b: Grid, lay: GridLayout, onlyUsed: Boolean, picker: @Composable 
         if (b.help.isNotEmpty()) Text(b.help, style = T.small, color = cc.muted, modifier = Modifier.padding(top = 4.dp))
         Spacer(Modifier.height(12.dp))
         picker()
-        if (b.fixed != null && (b.picker != null || (b.skipEmpty && !lay.table))) {
-            if (b.picker != null) Text("Fixtures in use", style = T.section, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 6.dp))
-            FilterChip(selected = !onlyUsed, onClick = onToggle, label = { Text(if (b.picker != null) "Show the full code table" else "Show all rows") })
+        if (b.fixed != null && (b.readOnly || (b.skipEmpty && !lay.table))) {
+                        FilterChip(selected = !onlyUsed, onClick = onToggle, label = { Text(if (b.readOnly) "Show the full code table" else "Show all rows") })
             Spacer(Modifier.height(8.dp))
         }
         if (lay.table) {
@@ -132,7 +131,10 @@ fun GridRow(b: Grid, s: ToolState, r: Res, app: AppState, lay: GridLayout, i: In
                     } else Text(fmt(v, c.dec), color = if (k == 0) cc.ink else cc.muted, fontSize = 14.sp, fontWeight = if (k == 0 && rowUsed(b, row)) FontWeight.Bold else FontWeight.Normal,
                         textAlign = if (v is Number) TextAlign.End else TextAlign.Start, style = T.num, modifier = Modifier.width(widths[j++] * sc).padding(horizontal = 8.dp))
                 }
-                b.cols.forEach { f -> BoundInput(f, row, app, Modifier.width(widths[j++] * sc).padding(horizontal = 4.dp), onStructural = { app.reload() }) }
+                b.cols.forEach { f ->
+                    if (b.readOnly) Text(fmt(parseNum(row[f.k]).let { if (it.isNaN()) 0.0 else it }, 0), style = T.num, fontSize = 14.sp, color = cc.ink, textAlign = TextAlign.End, modifier = Modifier.width(widths[j++] * sc).padding(horizontal = 8.dp))
+                    else BoundInput(f, row, app, Modifier.width(widths[j++] * sc).padding(horizontal = 4.dp), onStructural = { app.reload() })
+                }
                 b.outs.forEach { o ->
                     val v = o.get(r, i)
                     Box(Modifier.width(widths[j++] * sc).heightIn(min = 54.dp).background(if (o.key) cc.keyBg else cc.resBg).padding(horizontal = 8.dp), contentAlignment = if (v is String) Alignment.CenterStart else Alignment.CenterEnd) {
@@ -165,7 +167,10 @@ fun GridRow(b: Grid, s: ToolState, r: Res, app: AppState, lay: GridLayout, i: In
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     b.cols.forEach { f ->
                         val w = if (f.kind == Kind.TEXT) maxOf(colW(f), 200.dp) else maxOf(colW(f), 130.dp)
-                        Column(Modifier.width(w)) {
+                        if (b.readOnly) Column(Modifier.clip(RoundedCornerShape(10.dp)).background(cc.resBg).padding(horizontal = 10.dp, vertical = 6.dp)) {
+                            SmallLabel(f.label)
+                            Text(fmt(parseNum(row[f.k]).let { if (it.isNaN()) 0.0 else it }, 0), style = T.num, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = cc.ink)
+                        } else Column(Modifier.width(w)) {
                             SmallLabel(if (f.unit.isNotEmpty()) "${f.label} (${f.unit})" else f.label)
                             Spacer(Modifier.height(3.dp))
                             BoundInput(f, row, app, Modifier.fillMaxWidth(), onStructural = { app.reload() })
