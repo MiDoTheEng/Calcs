@@ -449,6 +449,11 @@ fun OverviewContent(b: Branch, avail: Dp, openTool: (Int) -> Unit) {
             }
         }
     }
+    androidx.compose.foundation.lazy.LazyColumn(
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         item(key = "title") {
             Column(Modifier.widthIn(max = 1240.dp).fillMaxWidth()) {
                 Text("${b.title} – system overview", fontSize = 24.sp, fontWeight = FontWeight.ExtraBold, color = cc.ink)
