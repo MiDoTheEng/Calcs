@@ -29,6 +29,24 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/out"
           cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/out/Calcs.apk"
 
+      - name: Render screenshots (phone + tablet)
+        id: shots
+        continue-on-error: true
+        run: gradle testDebugUnitTest --no-daemon 2>&1 | tee test.log
+
+      - name: Publish screenshots
+        if: always()
+        run: |
+          mkdir -p /tmp/shots
+          cp app/build/shots/*.png /tmp/shots/ 2>/dev/null || true
+          grep -E "FAILED|Exception|Error|tests completed" test.log | head -80 > /tmp/shots/test-summary.txt || true
+          cp -r app/build/test-results /tmp/shots/ 2>/dev/null || true
+          cd /tmp/shots
+          git init -q -b ci-shots
+          git config user.name "calcs-ci"; git config user.email "ci@users.noreply.github.com"
+          git add -A && git commit -q -m "Screenshots for ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-shots
+
       - name: Publish the build log when the build fails
         if: failure()
         run: |
