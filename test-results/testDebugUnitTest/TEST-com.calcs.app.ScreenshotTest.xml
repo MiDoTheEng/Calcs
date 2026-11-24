@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.calcs.app.ScreenshotTest" tests="34" skipped="0" failures="0" errors="0" timestamp="2026-11-24T07:15:28" hostname="runnervm0hi8g" time="14.882">
+  <properties/>
+  <testcase name="shot[00_home_tablet]" classname="com.calcs.app.ScreenshotTest" time="1.847"/>
+  <testcase name="shot[01_home_phone_dark]" classname="com.calcs.app.ScreenshotTest" time="0.248"/>
+  <testcase name="shot[map_water_tablet]" classname="com.calcs.app.ScreenshotTest" time="0.331"/>
+  <testcase name="shot[tab_water_0_ws-building]" classname="com.calcs.app.ScreenshotTest" time="0.945"/>
+  <testcase name="shot[tab_water_1_ws-segments]" classname="com.calcs.app.ScreenshotTest" time="0.59"/>
+  <testcase name="shot[tab_water_2_ws-hot]" classname="com.calcs.app.ScreenshotTest" time="0.523"/>
+  <testcase name="shot[map_drainage_tablet]" classname="com.calcs.app.ScreenshotTest" time="0.265"/>
+  <testcase name="shot[tab_drainage_0_dr-fixtures]" classname="com.calcs.app.ScreenshotTest" time="0.437"/>
+  <testcase name="shot[tab_drainage_1_dr-pipes]" classname="com.calcs.app.ScreenshotTest" time="0.441"/>
+  <testcase name="shot[map_rain_tablet]" classname="com.calcs.app.ScreenshotTest" time="0.224"/>
+  <testcase name="shot[tab_rain_0_rn-leaders]" classname="com.calcs.app.ScreenshotTest" time="0.329"/>
+  <testcase name="shot[tab_rain_1_rn-drains]" classname="com.calcs.app.ScreenshotTest" time="0.335"/>
+  <testcase name="shot[map_fire_tablet]" classname="com.calcs.app.ScreenshotTest" time="0.243"/>
+  <testcase name="shot[tab_fire_0_fire-demand]" classname="com.calcs.app.ScreenshotTest" time="0.374"/>
+  <testcase name="shot[tab_fire_1_fire-zones]" classname="com.calcs.app.ScreenshotTest" time="0.425"/>
+  <testcase name="shot[tab_fire_2_fire-branch]" classname="com.calcs.app.ScreenshotTest" time="0.432"/>
+  <testcase name="shot[map_hvac_tablet]" classname="com.calcs.app.ScreenshotTest" time="0.278"/>
+  <testcase name="shot[tab_hvac_0_hvac-load]" classname="com.calcs.app.ScreenshotTest" time="0.42"/>
+  <testcase name="shot[tab_hvac_1_hvac-air]" classname="com.calcs.app.ScreenshotTest" time="0.42"/>
+  <testcase name="shot[tab_hvac_2_hvac-duct]" classname="com.calcs.app.ScreenshotTest" time="0.471"/>
+  <testcase name="shot[map_hvac_phone]" classname="com.calcs.app.ScreenshotTest" time="0.294"/>
+  <testcase name="shot[map_fire_tabP_dark]" classname="com.calcs.app.ScreenshotTest" time="0.279"/>
+  <testcase name="shot[tabP_water_0]" classname="com.calcs.app.ScreenshotTest" time="0.375"/>
+  <testcase name="shot[tabP_hvac_0]" classname="com.calcs.app.ScreenshotTest" time="0.368"/>
+  <testcase name="shot[phone_water_0]" classname="com.calcs.app.ScreenshotTest" time="0.348"/>
+  <testcase name="shot[phone_drainage_1]" classname="com.calcs.app.ScreenshotTest" time="0.359"/>
+  <testcase name="shot[phone_fire_2_dark]" classname="com.calcs.app.ScreenshotTest" time="0.339"/>
+  <testcase name="shot[phone_hvac_0]" classname="com.calcs.app.ScreenshotTest" time="0.357"/>
+  <testcase name="shot[phone_hvac_2]" classname="com.calcs.app.ScreenshotTest" time="0.398"/>
+  <testcase name="shot[phone_fire_0_view]" classname="com.calcs.app.ScreenshotTest" time="0.325"/>
+  <testcase name="shot[units_tablet]" classname="com.calcs.app.ScreenshotTest" time="0.372"/>
+  <testcase name="shot[keypad_tablet]" classname="com.calcs.app.ScreenshotTest" time="0.423"/>
+  <testcase name="shot[keypad_phone]" classname="com.calcs.app.ScreenshotTest" time="0.374"/>
+  <testcase name="shot[rooms_flow]" classname="com.calcs.app.ScreenshotTest" time="0.675"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
